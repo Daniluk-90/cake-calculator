@@ -1,0 +1,43 @@
+name: Обновление цен
+
+on:
+  schedule:
+    - cron: "0 4 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-prices
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: cake-calculator-site
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Проверить разбор цен
+        run: node --test test/parse.test.mjs
+      - name: Собрать свежие цены
+        env:
+          TINYFISH_API_KEY: ${{ secrets.TINYFISH_API_KEY }}
+        run: node scripts/update-prices.mjs
+      - name: Сохранить prices.json
+        run: |
+          if git diff --quiet prices.json; then
+            echo "Цены не изменились"
+          else
+            git config user.name "price-bot"
+            git config user.email "price-bot@users.noreply.github.com"
+            git add prices.json
+            git commit -m "Обновление цен $(date -u +%F)"
+            git push
+          fi
