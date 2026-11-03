@@ -1,0 +1,9 @@
+# Сайт статический: Netlify просто публикует файлы из корня репозитория.
+[build]
+  publish = "."
+
+# Файл с ценами обновляется ежедневно, поэтому кэш у него короткий.
+[[headers]]
+  for = "/prices.json"
+  [headers.values]
+    Cache-Control = "public, max-age=300"

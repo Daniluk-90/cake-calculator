@@ -1,0 +1,506 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style><title>Калькулятор торта</title></head><body>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&display=swap">
+<style>
+/* Layout: одна колонка 480px, красная плашка, карточка формы, карточка состава. */
+:root {
+  --bg: #f4ece3;
+  --card: #fbf7f2;
+  --fg: #2b1a14;
+  --muted: #8a7468;
+  --red: #c8102e;
+  --red-ink: #ffffff;
+  --pink: #f3d6d9;
+  --line: #e6d9cd;
+  --sponge: #e3b04b;
+  --cream: #c8102e;
+  --warn-bg: #fdf1c9;
+  --warn-line: #d9b44a;
+  --chip: #efe2d8;
+  --font: "Manrope", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #1c1412; --card: #261b18; --fg: #f6ece4; --muted: #b39c90; --red: #e5384f;
+    --pink: #4a2830; --line: #3a2b26; --sponge: #e3b04b; --cream: #e5384f;
+    --warn-bg: #3b3216; --warn-line: #8a742a; --chip: #35261f; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #1c1412; --card: #261b18; --fg: #f6ece4; --muted: #b39c90; --red: #e5384f;
+  --pink: #4a2830; --line: #3a2b26; --sponge: #e3b04b; --cream: #e5384f;
+  --warn-bg: #3b3216; --warn-line: #8a742a; --chip: #35261f; color-scheme: dark;
+}
+body { background: var(--bg); color: var(--fg); font-family: var(--font); font-size: 15px;
+  padding-block: 20px 32px; padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.wrap { max-width: 480px; margin: 0 auto; display: flex; flex-direction: column; gap: 12px; }
+.banner { background: var(--red); color: var(--red-ink); border-radius: 20px; padding: 18px 20px;
+  box-shadow: 0 4px 0 rgba(0,0,0,.18); }
+.banner h1 { margin: 0; font-size: 26px; line-height: 1.1; font-weight: 800; text-wrap: balance; }
+.banner p { margin: 6px 0 0; font-size: 14px; font-weight: 700; color: #ffe27a; }
+.card { background: var(--card); border-radius: 20px; padding: 16px 18px; min-width: 0;
+  box-shadow: 0 1px 0 var(--line); }
+.label { font-size: 11px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+.top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-top: 4px; }
+.big { font-size: 52px; line-height: 1; font-weight: 800; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.big small { font-size: 20px; letter-spacing: 0; margin-left: 3px; }
+.badge { background: var(--pink); border-radius: 12px; padding: 8px 12px; text-align: right; flex: none; }
+.badge b { display: block; font-size: 17px; color: var(--red); font-variant-numeric: tabular-nums; }
+.badge span { font-size: 11px; color: var(--muted); font-weight: 700; }
+.viz { display: flex; justify-content: center; padding: 14px 0 6px; }
+.viz svg { max-width: 100%; height: auto; }
+.sliders { display: flex; flex-direction: column; gap: 10px; }
+.srow { display: flex; flex-direction: column; gap: 2px; }
+.srow .cap { display: flex; justify-content: space-between; font-size: 11px; font-weight: 700; color: var(--muted); }
+.srow .cap b { color: var(--fg); font-size: 12px; }
+input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; height: 28px; background: transparent; margin: 0; cursor: pointer; }
+input[type=range]::-webkit-slider-runnable-track { height: 6px; border-radius: 3px; background: linear-gradient(to right, var(--red) var(--p, 50%), var(--line) var(--p, 50%)); }
+input[type=range]::-moz-range-track { height: 6px; border-radius: 3px; background: var(--line); }
+input[type=range]::-moz-range-progress { height: 6px; border-radius: 3px; background: var(--red); }
+input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 26px; height: 26px; border-radius: 50%; background: var(--card); border: 3px solid var(--red); margin-top: -10px; }
+input[type=range]::-moz-range-thumb { width: 20px; height: 20px; border-radius: 50%; background: var(--card); border: 3px solid var(--red); }
+input[type=range]:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; border-radius: 6px; }
+.chips { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
+.chip { background: var(--chip); border-radius: 10px; padding: 9px 10px; text-align: center; font-size: 13px; font-weight: 800; transition: background .2s; }
+.chip.on { background: var(--pink); }
+.seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 8px; }
+.seg.two { grid-template-columns: 1fr 1fr; }
+.seg.wrap { grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); }
+.seg button { font: inherit; font-weight: 800; font-size: 13px; padding: 10px 4px; border-radius: 999px; cursor: pointer;
+  border: 1.5px solid var(--line); background: transparent; color: var(--muted); }
+.seg button[aria-pressed="true"] { background: var(--fg); border-color: var(--fg); color: var(--bg); }
+.seg button:focus-visible, .toggle:focus-visible { outline: 2px solid var(--red); outline-offset: 2px; }
+.warn { background: var(--warn-bg); border: 1.5px solid var(--warn-line); border-radius: 14px; padding: 12px 14px; font-size: 13px; font-weight: 700; line-height: 1.4; }
+.warn em { font-style: normal; color: var(--red); }
+.toggle { margin-top: 10px; font: inherit; font-weight: 800; font-size: 12px; border-radius: 999px; padding: 7px 14px; cursor: pointer;
+  border: 1.5px solid var(--fg); background: transparent; color: var(--fg); }
+.group { margin-top: 14px; }
+.group:first-child { margin-top: 0; }
+.gh { display: flex; align-items: baseline; gap: 8px; margin-bottom: 4px; }
+.gh i { width: 9px; height: 9px; border-radius: 50%; flex: none; align-self: center; }
+.gh b { font-size: 17px; font-weight: 800; }
+.gh span { font-size: 10px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.row { display: flex; justify-content: space-between; align-items: baseline; padding: 5px 0; border-bottom: 1px solid var(--line); font-weight: 500; }
+.row:last-child { border-bottom: 0; }
+.row b { font-weight: 800; font-variant-numeric: tabular-nums; background: var(--chip); padding: 1px 8px; border-radius: 6px; }
+.total { display: flex; justify-content: space-between; align-items: baseline; margin-top: 16px; padding-top: 12px; border-top: 2px solid var(--fg); font-weight: 800; }
+.total b { font-size: 26px; color: var(--red); font-variant-numeric: tabular-nums; }
+.note { font-size: 12px; color: var(--muted); font-weight: 500; text-align: center; margin: 0; }
+.rc { font-style: normal; font-size: 11px; font-weight: 700; color: var(--muted); margin-left: 4px; white-space: nowrap; }
+.pstep { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 13px; font-weight: 700; color: var(--muted); }
+.pstep button { font: inherit; font-weight: 800; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; border: 1.5px solid var(--line); background: transparent; color: var(--fg); }
+.pstep b { color: var(--fg); min-width: 22px; text-align: center; font-variant-numeric: tabular-nums; }
+.prow { display: flex; align-items: center; gap: 8px; padding: 5px 0; border-bottom: 1px solid var(--line); }
+.prow:last-child { border-bottom: 0; }
+.prow .n { flex: 1; min-width: 0; font-weight: 500; }
+.prow input { width: 88px; font: inherit; font-size: 16px; font-weight: 800; text-align: right; border: 1.5px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--fg); padding: 6px 8px; font-variant-numeric: tabular-nums; }
+.prow input:focus-visible { outline: 2px solid var(--red); outline-offset: 1px; }
+.prow > em { font-style: normal; font-size: 11px; font-weight: 700; color: var(--muted); width: 34px; flex: none; }
+.prow .pv { font-weight: 800; font-variant-numeric: tabular-nums; }
+.ver { font-style: normal; font-size: 11px; font-weight: 800; color: #4f9d5d; margin-left: 4px; }
+.sub { margin: 14px 0 4px; }
+.hint { font-size: 12px; color: var(--muted); font-weight: 500; line-height: 1.45; margin: 10px 0 0; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="wrap">
+  <header class="banner">
+    <h1>Калькулятор торта</h1>
+    <p>Пересчёт рецепта с формы 20 см на любую другую</p>
+  </header>
+
+  <section class="card" aria-label="Форма">
+    <div class="label">Рецепт</div>
+    <div class="seg two" id="recipeSeg" role="group" aria-label="Рецепт">
+      <button type="button" data-recipe="biscuit" aria-pressed="true">Бисквит</button>
+      <button type="button" data-recipe="medovik" aria-pressed="false">Медовик</button>
+    </div>
+    <div class="label" id="formLabel" style="margin-top:16px">Диаметр формы</div>
+    <div class="top">
+      <div class="big" id="size" aria-live="polite">24<small>см</small></div>
+      <div class="badge"><b id="mult">×1,44</b><span>рецепт на 20 см</span></div>
+    </div>
+    <div class="viz" id="viz"></div>
+    <div class="sliders" id="sliders"></div>
+    <div class="chips">
+      <div class="chip" id="chipH">Высота 10 см</div>
+      <div class="chip" id="chipT">по рецепту 30 мин</div>
+    </div>
+    <div class="seg" role="group" aria-label="Форма торта">
+      <button type="button" data-shape="circle" aria-pressed="true">Круг</button>
+      <button type="button" data-shape="square" aria-pressed="false">Квадрат</button>
+      <button type="button" data-shape="rect" aria-pressed="false">Прямоугольник</button>
+    </div>
+    <div class="label" style="margin-top:16px">Начинка</div>
+    <div class="seg wrap" id="fillSeg" role="group" aria-label="Начинка"></div>
+  </section>
+
+  <div class="warn" id="warn" hidden>
+    <div>⚠ Рецепт вырос больше чем в 1,6 раза — <em>лучше испечь два коржа</em>, иначе центр не пропечётся</div>
+    <button type="button" class="toggle" id="toggle"></button>
+  </div>
+
+  <section class="card" aria-label="Состав" id="list"></section>
+
+  <section class="card" aria-label="Себестоимость">
+    <div id="costTop"></div>
+    <div class="label sub" id="priceHead"></div>
+    <div id="priceList"></div>
+    <div class="label sub">По сетям</div>
+    <div id="costChains"></div>
+    <p class="hint">Себестоимость считается только по продуктам, без газа, упаковки и работы. Цены в ₽ за кг (яйца — за штуку). Цены обновлены <span id="priceDate">4 ноября 2026</span> с сайтов Пятёрочки, Магнита, Перекрёстка и Ашана (Москва и доставка, обычные цены без карты, медиана по найденным товарам), у региональных магазинов они могут отличаться. Сайт обновляет их сам раз в сутки. «1 товар» значит, что цена взята по одной позиции, её стоит перепроверить. Где цена в сети не нашлась, берётся медиана по другим сетям. Ваши правки сохраняются на этом устройстве.</p>
+  </section>
+  <p class="note" id="note"></p>
+</div>
+
+<script>
+function F(name, tag, color, items) { return { name: name, tag: tag, by: 'layers', color: color, items: items }; }
+var GREEN = '#4f9d5d', CREAM_COL = 'var(--red)';
+var RECIPES = {
+  biscuit: {
+    pre: [
+      { name: 'Бисквит', by: 'dough', color: 'var(--sponge)', items: [
+        ['Мука', 250, 'г'], ['Сахар', 200, 'г'], ['Яйца', 6, 'шт'], ['Сливочное масло', 150, 'г'], ['Разрыхлитель', 5, 'г'] ] },
+      F('Крем', 'сливочно-сырный', CREAM_COL, [['Сливочный сыр', 500, 'г'], ['Сливки 33%', 200, 'г'], ['Сахарная пудра', 100, 'г']])
+    ],
+    post: [],
+    fillings: [
+      { id: 'berry', label: 'Ягодная', groups: [F('Начинка', 'ягодная', GREEN, [['Ягоды', 300, 'г'], ['Сахар', 80, 'г'], ['Крахмал', 20, 'г']])] },
+      { id: 'choco', label: 'Шоколадный ганаш', groups: [F('Начинка', 'шоколадный ганаш', '#6b3a22', [['Тёмный шоколад', 200, 'г'], ['Сливки 33%', 200, 'г']])] },
+      { id: 'lemon', label: 'Лимонный курд', groups: [F('Начинка', 'лимонный курд', '#e6c32e', [['Лимонный сок', 100, 'г'], ['Сахар', 100, 'г'], ['Сливочное масло', 80, 'г'], ['Крахмал', 15, 'г']])] },
+      { id: 'condensed', label: 'Варёная сгущёнка', groups: [F('Начинка', 'варёная сгущёнка', '#b9772e', [['Варёная сгущёнка', 400, 'г'], ['Сливочное масло', 100, 'г']])] },
+      { id: 'none', label: 'Без начинки', groups: [] }
+    ],
+    h: 10, hmin: 4, hmax: 16, n: 3, nmin: 2, nmax: 6, splittable: true,
+    time: function (h) { return Math.round(30 * Math.pow(h / 10, 1.46)) + ' мин'; },
+    note: 'Базовый рецепт рассчитан на форму 20 см, высота 10 см, три коржа. Яйца считаются по 50 г.'
+  },
+  medovik: {
+    pre: [
+      { name: 'Коржи', by: 'dough', sfx: ', медовые', color: '#b9772e', items: [
+        ['Мука', 400, 'г'], ['Сахар', 150, 'г'], ['Яйца', 3, 'шт'], ['Сливочное масло', 100, 'г'], ['Мёд', 120, 'г'], ['Сода', 6, 'г'] ] }
+    ],
+    post: [
+      { name: 'Посыпка', tag: 'ореховая', by: 'area', color: GREEN, items: [['Грецкие орехи', 80, 'г']] }
+    ],
+    fillings: [
+      { id: 'sour', label: 'Сметанный крем', groups: [F('Крем', 'сметанный', CREAM_COL, [['Сметана 25%', 700, 'г'], ['Сахарная пудра', 120, 'г']])] },
+      { id: 'custard', label: 'Заварной крем', groups: [F('Крем', 'заварной', CREAM_COL, [['Молоко', 600, 'г'], ['Сахар', 180, 'г'], ['Мука', 60, 'г'], ['Сливочное масло', 200, 'г']])] },
+      { id: 'condensed', label: 'Сметана со сгущёнкой', groups: [F('Крем', 'сметанно-сгущёночный', CREAM_COL, [['Сметана 25%', 400, 'г'], ['Сгущёнка', 300, 'г']])] },
+      { id: 'prune', label: 'Чернослив и орехи', groups: [
+        F('Крем', 'сметанный', CREAM_COL, [['Сметана 25%', 700, 'г'], ['Сахарная пудра', 120, 'г']]),
+        F('Начинка', 'чернослив с орехами', '#5a3a5e', [['Чернослив', 200, 'г'], ['Грецкие орехи', 100, 'г']]) ] },
+      { id: 'cherry', label: 'Вишнёвая', groups: [
+        F('Крем', 'сметанный', CREAM_COL, [['Сметана 25%', 700, 'г'], ['Сахарная пудра', 120, 'г']]),
+        F('Начинка', 'вишнёвая', '#a3162f', [['Вишня', 300, 'г'], ['Сахар', 60, 'г'], ['Крахмал', 15, 'г']]) ] }
+    ],
+    h: 0.5, hmin: 0.3, hmax: 1, hstep: 0.1, hPer: true, hLabel: 'Высота одного коржа', n: 6, nmin: 3, nmax: 12, splittable: false,
+    time: function (h) { return Math.max(3, Math.round(10 * h)) + ' мин на корж'; },
+    note: 'Базовый рецепт рассчитан на форму 20 см, шесть коржей по 0,5 см. Высота — толщина одного коржа, чем он толще, тем больше теста. Каждый корж пекут отдельно. Готовому торту нужно 8–12 часов, чтобы пропитаться. Яйца считаются по 50 г.'
+  }
+};
+function groupsFor() {
+  var R = RECIPES[st.recipe];
+  var f = R.fillings.filter(function (x) { return x.id === st.fill; })[0] || R.fillings[0];
+  return R.pre.concat(f.groups, R.post);
+}
+var EGG_G = 50, BASE_AREA = Math.PI * 100, LIMIT = 1.6;
+var CHAINS = [['pyat', 'Пятёрочка'], ['magnit', 'Магнит'], ['perek', 'Перекрёсток'], ['auchan', 'Ашан']];
+var PRICE_DATA = {
+  "Мука": {"pyat": [69.99, 5], "magnit": [64.99, 5], "perek": [65.0, 5], "auchan": [69.99, 5]},
+  "Сахар": {"pyat": [84.99, 1], "magnit": [86.0, 2], "perek": [77.45, 4], "auchan": [107.98, 5]},
+  "Яйца": {"pyat": [12.0, 5], "magnit": [10.07, 3], "perek": [7.99, 3], "auchan": [12.5, 4]},
+  "Сливочное масло": {"pyat": [1142.8, 5], "magnit": [1222.17, 9], "perek": [1261.06, 3], "auchan": [1111.06, 5]},
+  "Разрыхлитель": {"pyat": [1999.0, 3], "magnit": [1082.5, 3], "perek": [1439.6, 5], "auchan": [749.17, 7]},
+  "Сливочный сыр": {"pyat": [888.83, 1], "magnit": [818.14, 5], "perek": [831.0, 2], "auchan": [761.33, 4]},
+  "Сливки 33%": {"pyat": [787.48, 4], "magnit": [679.98, 4], "perek": [685.69, 5], "auchan": [739.98, 4]},
+  "Сахарная пудра": {"pyat": [824.88, 3], "magnit": [277.96, 4], "perek": [339.95, 5], "auchan": [599.83, 3]},
+  "Ягоды": {"pyat": [589.97, 3], "magnit": [766.63, 3], "perek": [699.97, 3], "auchan": [568.73, 4]},
+  "Крахмал": {"pyat": [612.43, 2], "magnit": [289.95, 2], "perek": [299.95, 5], "auchan": [268.72, 4]},
+  "Тёмный шоколад": {"pyat": [3656.54, 4], "magnit": [1833.22, 3], "perek": [2571.37, 3], "auchan": [2024.9, 4]},
+  "Лимонный сок": {"pyat": [547.74, 1], "magnit": [652.09, 2], "auchan": [629.28, 2]},
+  "Варёная сгущёнка": {"pyat": [461.65, 4], "magnit": [444.42, 3], "perek": [399.71, 4], "auchan": [418.89, 3]},
+  "Мёд": {"pyat": [1637.98, 5], "magnit": [590.59, 7], "perek": [781.12, 2], "auchan": [639.98, 5]},
+  "Сода": {"pyat": [91.98, 1], "magnit": [103.98, 1], "perek": [111.98, 1], "auchan": [99.98, 1]},
+  "Сметана 25%": {"pyat": [433.3, 3], "magnit": [434.98, 4], "perek": [444.98, 7], "auchan": [399.97, 4]},
+  "Молоко": {"pyat": [107.56, 4], "magnit": [115.2, 4], "perek": [102.42, 4], "auchan": [121.35, 3]},
+  "Сгущёнка": {"pyat": [461.54, 6], "magnit": [394.42, 6], "perek": [407.87, 3], "auchan": [407.87, 3]},
+  "Чернослив": {"pyat": [799.9, 1], "magnit": [966.6, 4], "perek": [799.95, 5], "auchan": [1377.73, 4]},
+  "Грецкие орехи": {"pyat": [1494.9, 2], "magnit": [1789.9, 3], "perek": [1519.94, 4], "auchan": [1909.98, 3]},
+  "Вишня": {"pyat": [1326.64, 2], "magnit": [1099.97, 3], "perek": [1096.63, 4], "auchan": [899.97, 3]}
+};
+var PRICE_ISO = '2026-11-04';
+var REF = {}, DEFAULTS = {}, prices = {}, userPrices = {}, userStored = null;
+try { userStored = JSON.parse(localStorage.getItem('cakePricesUser') || 'null'); } catch (e) {}
+function buildPrices() {
+  REF = {}; DEFAULTS = {}; prices = {}; userPrices = {};
+  Object.keys(PRICE_DATA).forEach(function (n) {
+    var v = [];
+    for (var c in PRICE_DATA[n]) v.push(PRICE_DATA[n][c][0]);
+    if (!v.length) return;
+    v.sort(function (x, y) { return x - y; });
+    var m = v.length >> 1;
+    REF[n] = Math.round((v.length % 2 ? v[m] : (v[m - 1] + v[m]) / 2) * 100) / 100;
+  });
+  CHAINS.forEach(function (c) {
+    DEFAULTS[c[0]] = {}; prices[c[0]] = {};
+    Object.keys(PRICE_DATA).forEach(function (n) {
+      var d = PRICE_DATA[n][c[0]];
+      if (d) { DEFAULTS[c[0]][n] = d; prices[c[0]][n] = d[0]; }
+    });
+  });
+  if (userStored) CHAINS.forEach(function (c) {
+    if (userStored[c[0]]) for (var k in userStored[c[0]]) {
+      var x = userStored[c[0]][k];
+      if (typeof x === 'number' && x > 0 && REF[k] !== undefined) { prices[c[0]][k] = x; (userPrices[c[0]] = userPrices[c[0]] || {})[k] = x; }
+    }
+  });
+}
+buildPrices();
+function savePrices() { try { localStorage.setItem('cakePricesUser', JSON.stringify(userPrices)); userStored = JSON.parse(JSON.stringify(userPrices)); } catch (e) {} }
+
+// Свежие цены: сайт хранит prices.json, который обновляет сборщик по расписанию
+function showPriceDate() {
+  var el = document.getElementById('priceDate'); if (!el) return;
+  var d = new Date(PRICE_ISO + 'T12:00:00'), days = (Date.now() - d.getTime()) / 864e5;
+  var t = isNaN(d) ? PRICE_ISO : d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
+  el.textContent = t + (days > 14 ? ' (данные могли устареть)' : '');
+}
+function loadRemotePrices() {
+  if (typeof fetch !== 'function' || location.protocol === 'file:') return;
+  fetch('prices.json', { cache: 'no-cache' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
+    if (!j || !j.data || typeof j.data !== 'object') return;
+    var clean = {}, count = 0;
+    Object.keys(PRICE_DATA).forEach(function (n) {
+      var src = j.data[n]; if (!src) return;
+      CHAINS.forEach(function (c) {
+        var v = src[c[0]];
+        if (v && typeof v[0] === 'number' && v[0] > 0 && isFinite(v[0])) { (clean[n] = clean[n] || {})[c[0]] = [v[0], +v[1] || 1]; count++; }
+      });
+    });
+    if (count < 40) return;                       // подозрительно пустой файл: остаёмся на встроенных ценах
+    PRICE_DATA = clean;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(j.updatedAt || '')) PRICE_ISO = j.updatedAt;
+    buildPrices(); priceKey = ''; render(false); showPriceDate();
+  }).catch(function () {});
+}
+var st = { chain: 'min', portions: null, recipe: 'biscuit', fill: 'berry', h: 10, n: 3, shape: 'circle', d: 24, a: 24, a2: 30, b: 40, twoOn: false };
+var $ = function (id) { return document.getElementById(id); };
+
+function pl(n) { var m = n % 10, t = n % 100; return (m === 1 && t !== 11) ? 'корж' : (m >= 2 && m <= 4 && (t < 12 || t > 14)) ? 'коржа' : 'коржей'; }
+function fmt(n) { return String(n).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, ' '); }
+function round1(n) { return Math.round(n * 10) / 10; }
+function weight(n) { return n < 10 ? fmt(round1(n)) : fmt(Math.round(n)); }
+
+function ownPrice(ch, n) { var v = prices[ch][n]; return typeof v === 'number' && v > 0 ? v : null; }
+function priceFor(n, ch) {
+  if (ch === 'min') {
+    var best = null;
+    CHAINS.forEach(function (c) { var v = ownPrice(c[0], n); if (v !== null && (best === null || v < best)) best = v; });
+    return best !== null ? best : REF[n];
+  }
+  var o = ownPrice(ch, n); return o !== null ? o : REF[n];
+}
+function itemCost(n, qty, ch) { return priceFor(n, ch) * (n === 'Яйца' ? qty : qty / 1000); }
+function money(x) { return fmt(Math.round(x)) + ' ₽'; }
+function chainName(id) { return CHAINS.filter(function (c) { return c[0] === id; })[0][1]; }
+
+function calc() {
+  var area = st.shape === 'circle' ? Math.PI * st.d * st.d / 4 : st.shape === 'square' ? st.a * st.a : st.a2 * st.b;
+  var aS = area / BASE_AREA, hf = st.h / RECIPES[st.recipe].h * (RECIPES[st.recipe].hPer ? st.n / RECIPES[st.recipe].n : 1), lf = (st.n - 1) / (RECIPES[st.recipe].n - 1);
+  var scale = aS * hf;
+  var over = scale > LIMIT && RECIPES[st.recipe].splittable;
+  var two = over && st.twoOn;
+  return { scale: scale, aS: aS, hf: hf, lf: lf, over: over, two: two, eff: two ? scale / 2 : scale };
+}
+
+function sizeText() {
+  if (st.shape === 'circle') return 'Ø' + st.d;
+  if (st.shape === 'square') return st.a + '×' + st.a;
+  return st.a2 + '×' + st.b;
+}
+
+function vizSVG(c) {
+  var M = st.recipe === 'medovik';
+  var layers = [];
+  for (var li = 0; li < st.n; li++) { if (li) layers.push('cream'); layers.push('sponge'); }
+  if (st.shape === 'circle') {
+    var w = st.d * 6, x = 150 - w / 2, y = 8, out = '<svg width="300" height="170" viewBox="0 0 300 170" role="img" aria-label="Торт в разрезе">';
+    out += '<rect x="90" y="2" width="120" height="166" rx="3" fill="none" stroke="var(--muted)" stroke-width="1.2" stroke-dasharray="4 4"/>';
+    var hf = st.h / RECIPES[st.recipe].h, gaps = M ? 3 : 6;
+    var hs = layers.map(function (k) { return k === 'sponge' ? (M ? 10 * hf : 60 * hf / st.n) : (M ? 4 : 5); });
+    var tot = hs.reduce(function (s, v) { return s + v; }, 0) + gaps * (hs.length - 1), kk = Math.min(1, 156 / tot);
+    hs = hs.map(function (v) { return v * kk; }); gaps *= kk;
+    layers.forEach(function (k, i) {
+      out += '<rect x="' + x + '" y="' + y + '" width="' + w + '" height="' + hs[i] + '" rx="4" fill="' + (k === 'sponge' ? (M ? '#b9772e' : 'var(--sponge)') : (M ? '#f1dfb8' : 'var(--cream)')) + '"/>';
+      y += hs[i] + gaps;
+    });
+    return out + '</svg>';
+  }
+  var sa = st.shape === 'square' ? st.a : st.a2, sb = st.shape === 'square' ? st.a : st.b;
+  var k = 100 / Math.max(sa, sb, 20), rw = sa * k, rh = sb * k;
+  var cx = 80, cy = 60;
+  return '<svg width="160" height="120" viewBox="0 0 160 120" role="img" aria-label="Форма сверху">' +
+    '<rect x="' + (cx - rw / 2) + '" y="' + (cy - rh / 2) + '" width="' + rw + '" height="' + rh + '" rx="4" fill="var(--pink)" stroke="var(--fg)" stroke-width="2.5"/>' +
+    '<circle cx="' + cx + '" cy="' + cy + '" r="' + (10 * k) + '" fill="none" stroke="var(--red)" stroke-width="1.5" stroke-dasharray="4 3"/></svg>';
+}
+
+function sliderHTML(id, label, min, max, val, unit, step) {
+  unit = unit || ' см';
+  var p = (val - min) / (max - min) * 100;
+  return '<div class="srow"><div class="cap"><span>' + label + '</span><b>' + String(val).replace('.', ',') + unit + '</b></div>' +
+    '<input type="range" id="' + id + '" min="' + min + '" max="' + max + '" step="' + (step || 1) + '" value="' + val + '" style="--p:' + p + '%" data-unit="' + unit + '" aria-label="' + label + '">' +
+    '<div class="cap"><span>' + String(min).replace('.', ',') + unit + '</span><span>' + String(max).replace('.', ',') + unit + '</span></div></div>';
+}
+
+function buildSliders() {
+  var h = '';
+  if (st.shape === 'circle') h = sliderHTML('s_d', 'Диаметр', 10, 40, st.d);
+  else if (st.shape === 'square') h = sliderHTML('s_a', 'Сторона', 10, 50, st.a);
+  else h = sliderHTML('s_a2', 'Ширина', 10, 50, st.a2) + sliderHTML('s_b', 'Длина', 10, 60, st.b);
+  var RR = RECIPES[st.recipe];
+  h += sliderHTML('s_h', RR.hLabel || 'Высота коржей', RR.hmin, RR.hmax, st.h, ' см', RR.hstep || 1);
+  h += sliderHTML('s_n', 'Количество коржей', RR.nmin, RR.nmax, st.n, ' шт');
+  $('sliders').innerHTML = h;
+  [['s_n', 'n'], ['s_h', 'h'], ['s_d', 'd'], ['s_a', 'a'], ['s_a2', 'a2'], ['s_b', 'b']].forEach(function (p) {
+    var el = $(p[0]); if (!el) return;
+    el.addEventListener('input', function () {
+      st[p[1]] = +el.value;
+      var min = +el.min, max = +el.max;
+      el.style.setProperty('--p', ((el.value - min) / (max - min) * 100) + '%');
+      var cap = el.parentNode.querySelector('.cap b'); if (cap) cap.textContent = String(el.value).replace('.', ',') + el.dataset.unit;
+      render(false);
+    });
+  });
+}
+
+function buildFill() {
+  var fs = RECIPES[st.recipe].fillings;
+  $('fillSeg').innerHTML = fs.map(function (f) {
+    return '<button type="button" data-fill="' + f.id + '" aria-pressed="' + (f.id === st.fill) + '">' + f.label + '</button>';
+  }).join('');
+  document.querySelectorAll('#fillSeg button').forEach(function (b) {
+    b.addEventListener('click', function () { st.fill = b.dataset.fill; render(false); });
+  });
+}
+
+var priceKey = '';
+function renderCost(used, order, c) {
+  var total = 0;
+  order.forEach(function (n) { total += itemCost(n, used[n], st.chain); });
+  var auto = Math.max(1, Math.round(c.aS * BASE_AREA / 45));
+  var portions = st.portions || auto;
+  var h = '<div class="label">Себестоимость</div><div class="top"><div class="big">' + fmt(Math.round(total)) + '<small>₽</small></div>' +
+    '<div class="badge"><b>' + money(total / portions) + '</b><span>за порцию</span></div></div>' +
+    '<div class="pstep"><span>Порций</span><button type="button" data-p="-1" aria-label="Меньше порций">−</button><b>' + portions + '</b><button type="button" data-p="1" aria-label="Больше порций">+</button></div>' +
+    '<div class="label" style="margin-top:14px">Цены какой сети считать</div><div class="seg wrap" role="group" aria-label="Сеть">' +
+    '<button type="button" data-chain="min" aria-pressed="' + (st.chain === 'min') + '">Лучшая цена</button>' +
+    CHAINS.map(function (x) { return '<button type="button" data-chain="' + x[0] + '" aria-pressed="' + (st.chain === x[0]) + '">' + x[1] + '</button>'; }).join('') + '</div>';
+  $('costTop').innerHTML = h;
+  document.querySelectorAll('#costTop button[data-chain]').forEach(function (b) {
+    b.addEventListener('click', function () { st.chain = b.dataset.chain; render(false); });
+  });
+  document.querySelectorAll('#costTop button[data-p]').forEach(function (b) {
+    b.addEventListener('click', function () { st.portions = Math.max(1, portions + (+b.dataset.p)); render(false); });
+  });
+
+  var key = st.chain + '|' + order.join(',');
+  if (st.chain === 'min' || key !== priceKey) {
+    priceKey = key;
+    var ch = st.chain;
+    $('priceHead').textContent = ch === 'min' ? 'Цены в расчёте' : 'Цены: ' + chainName(ch);
+    var ph = '';
+    order.forEach(function (n) {
+      var unit = n === 'Яйца' ? '₽/шт' : '₽/кг';
+      if (ch === 'min') {
+        var src = 'медиана сетей';
+        CHAINS.forEach(function (x) { var v = ownPrice(x[0], n); if (v !== null && v === priceFor(n, 'min')) src = x[1]; });
+        ph += '<div class="prow"><span class="n">' + n + '<em class="rc">' + src + '</em></span><span class="pv">' + fmt(priceFor(n, 'min')) + '</span><em>' + unit + '</em></div>';
+      } else {
+        var own = ownPrice(ch, n), d = DEFAULTS[ch][n], ver = d && !(userPrices[ch] && userPrices[ch][n] !== undefined), ph0 = d ? d[0] : REF[n];
+        ph += '<label class="prow"><span class="n">' + n + (ver ? '<em class="ver">✓ ' + (d[1] === 1 ? '1 товар' : d[1] + ' тов.') + '</em>' : (d && own !== null ? '<em class="rc">ваша цена</em>' : (!d ? '<em class="rc">нет данных, медиана</em>' : ''))) + '</span>' +
+          '<input type="number" inputmode="decimal" min="0" step="1" data-n="' + n + '" placeholder="' + ph0 + '" value="' + (own !== null ? own : '') + '" aria-label="Цена ' + n + ', ' + unit + '"><em>' + unit + '</em></label>';
+      }
+    });
+    if (ch === 'min') ph += '<p class="hint">Для каждого продукта берётся самая низкая из введённых цен по сетям, а если цен нет — медиана по сетям. Одиночные находки могут занижать результат. Чтобы поправить цены, выберите сеть выше.</p>';
+    $('priceList').innerHTML = ph;
+    document.querySelectorAll('#priceList input').forEach(function (el) {
+      el.addEventListener('input', function () {
+        var x = parseFloat(el.value.replace(',', '.'));
+        var nn = el.dataset.n;
+        if (x > 0) { prices[ch][nn] = x; (userPrices[ch] = userPrices[ch] || {})[nn] = x; }
+        else { if (userPrices[ch]) delete userPrices[ch][nn]; var dd = DEFAULTS[ch][nn]; if (dd) prices[ch][nn] = dd[0]; else delete prices[ch][nn]; }
+        savePrices(); render(false);
+      });
+    });
+  }
+
+  var rows = CHAINS.map(function (x) {
+    var t = 0, cov = 0;
+    order.forEach(function (n) { t += itemCost(n, used[n], x[0]); if (ownPrice(x[0], n) !== null) cov++; });
+    return { name: x[1], t: t, cov: cov };
+  });
+  var maxCov = 0;
+  rows.forEach(function (r) { if (r.cov > maxCov) maxCov = r.cov; });
+  var minT = Infinity, withData = 0;
+  rows.forEach(function (r) { if (r.cov === maxCov && maxCov > 0) { withData++; if (r.t < minT) minT = r.t; } });
+  $('costChains').innerHTML = rows.map(function (r) {
+    return '<div class="row"><span>' + r.name + '<i class="rc">' + (r.cov ? 'своих цен: ' + r.cov + ' из ' + order.length : 'цен нет') + '</i></span><b>' +
+      (r.cov ? money(r.t) + (withData > 1 && r.cov === maxCov && r.t === minT ? ' ★' : '') : '—') + '</b></div>';
+  }).join('') + (withData > 1 ? '<p class="hint">★ — самая дешёвая сеть среди тех, у кого введено больше всего своих цен: так сравнение честное.</p>' : '');
+}
+
+function render(rebuild) {
+  var c = calc();
+  $('formLabel').textContent = st.shape === 'circle' ? 'Диаметр формы' : 'Форма';
+  $('size').innerHTML = sizeText() + '<small>см</small>';
+  $('mult').textContent = '×' + c.eff.toFixed(2).replace('.', ',');
+  $('viz').innerHTML = vizSVG(c);
+  var R = RECIPES[st.recipe];
+  var half = Math.round(st.h / 2 * 10) / 10;
+  $('chipH').textContent = c.two ? 'Высота ' + fmt(st.h) + ' → ' + fmt(half) + ' см' : (R.hPer ? 'Высота коржа ' : 'Высота ') + fmt(st.h) + ' см';
+  $('chipT').textContent = '⏱ ' + (c.two ? R.time(st.h, st.n).replace(' мин', '') + ' → ' + R.time(half, st.n) : R.time(st.h, st.n));
+  $('note').textContent = R.note;
+  $('chipH').className = 'chip' + (c.two ? ' on' : '');
+  $('chipT').className = 'chip' + (c.two ? ' on' : '');
+  $('warn').hidden = !c.over;
+  $('toggle').textContent = c.two ? 'Печь одним коржом' : 'Испечь два коржа';
+  document.querySelectorAll('.seg button[data-shape]').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.shape === st.shape)); });
+  document.querySelectorAll('.seg button[data-recipe]').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.recipe === st.recipe)); });
+  document.querySelectorAll('#fillSeg button').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.fill === st.fill)); });
+
+  var total = 0, html = '', used = {}, usedOrder = [];
+  groupsFor().forEach(function (g) {
+    html += '<div class="group"><div class="gh"><i style="background:' + g.color + '"></i><b>' + g.name + '</b><span>' + (g.by === 'dough' ? st.n + ' ' + pl(st.n) + (g.sfx || '') : g.tag) + '</span></div>';
+    g.items.forEach(function (it) {
+      var gf = g.by === 'dough' ? c.hf : g.by === 'layers' ? c.lf : 1;
+      var v = it[1] * c.aS * gf * (c.two ? 0.5 : 1), shown;
+      var qty;
+      if (it[2] === 'шт') { qty = Math.round(v); shown = qty + ' шт'; total += v * EGG_G; }
+      else { qty = v; shown = weight(v) + ' г'; total += v; }
+      if (!(it[0] in used)) { used[it[0]] = 0; usedOrder.push(it[0]); }
+      used[it[0]] += qty;
+      html += '<div class="row"><span>' + it[0] + '<i class="rc">≈ ' + money(itemCost(it[0], qty, st.chain)) + '</i></span><b>' + shown + '</b></div>';
+    });
+    html += '</div>';
+  });
+  html += '<div class="total"><span>Всего продуктов</span><b>' + fmt(Math.round(total)) + ' г</b></div>';
+  $('list').innerHTML = html;
+  renderCost(used, usedOrder, c);
+  if (rebuild) { buildSliders(); buildFill(); render(false); }
+}
+
+document.querySelectorAll('.seg button[data-shape]').forEach(function (b) {
+  b.addEventListener('click', function () { st.shape = b.dataset.shape; render(true); });
+});
+document.querySelectorAll('.seg button[data-recipe]').forEach(function (b) {
+  b.addEventListener('click', function () { st.recipe = b.dataset.recipe; st.h = RECIPES[st.recipe].h; st.n = RECIPES[st.recipe].n; st.fill = RECIPES[st.recipe].fillings[0].id; render(true); });
+});
+$('toggle').addEventListener('click', function () { st.twoOn = !st.twoOn; render(false); });
+render(true);
+showPriceDate();
+loadRemotePrices();
+</script>
+
+</body></html>
