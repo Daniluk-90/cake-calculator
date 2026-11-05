@@ -19,7 +19,13 @@ const BEATS = [
   { t: 23.8, target: 'costChains', card: '', sub: 'Бесплатно, ссылка в шапке профиля.', end: true },
   { t: 26.4, target: 'costTop',card: 'СОХРАНИ',                     sub: 'Сохраните и считайте весь торт, а не только коржи.', hl: 'costTop' },
 ];
-const TOTAL = 29.5;
+// Тайминги из озвучки (timings.json: {starts:[...], total}), иначе значения выше. Субтитры выключены.
+let TOTAL = 29.5;
+const SHOW_SUBS = false;
+if (fs.existsSync(__dirname + '/timings.json')) {
+  const tm = JSON.parse(fs.readFileSync(__dirname + '/timings.json', 'utf8'));
+  tm.starts.forEach((s, i) => { BEATS[i].t = s; }); TOTAL = tm.total;
+}
 const ease = x => x < 0 ? 0 : x > 1 ? 1 : x * x * (3 - 2 * x);
 
 (async () => {
@@ -45,6 +51,7 @@ const ease = x => x < 0 ? 0 : x > 1 ? 1 : x * x * (3 - 2 * x);
     #ovEnd h2{font-size:40px;line-height:1.05;margin:0 0 14px;font-weight:800}
     #ovEnd p{font-size:18px;margin:0 0 10px;color:#ffe27a;font-weight:700}
     #ovEnd .u{font-size:16px;white-space:nowrap;color:#fff;background:rgba(0,0,0,.18);padding:8px 12px;border-radius:10px}` });
+  if (!SHOW_SUBS) await p.addStyleTag({ content: '#ovSub{display:none!important}' });
   await p.evaluate(() => {
     for (const [id, html] of [['ovCard', ''], ['ovSub', ''], ['ovNote', 'Цены ориентировочные, 5.11.2026'],
       ['ovEnd', '<h2>Калькулятор торта</h2><p>Себестоимость с кремом и начинкой</p><p>Бесплатно · ссылка в шапке</p><div class="u">cake-calculator.netlify.app</div>']]) {
