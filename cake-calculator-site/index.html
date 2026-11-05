@@ -48,8 +48,18 @@ body { background: var(--bg); color: var(--fg); font-family: var(--font); font-s
 .badge { background: var(--pink); border-radius: 12px; padding: 8px 12px; text-align: right; flex: none; }
 .badge b { display: block; font-size: 17px; color: var(--red); font-variant-numeric: tabular-nums; }
 .badge span { font-size: 11px; color: var(--muted); font-weight: 700; }
-.viz { display: flex; justify-content: center; padding: 14px 0 6px; }
-.viz svg { max-width: 100%; height: auto; }
+.viz { display: flex; flex-direction: column; align-items: center; padding: 10px 0 4px; }
+.viz canvas { width: 100%; max-width: 360px; height: 230px; display: block; touch-action: none; cursor: grab; outline: none; border-radius: 14px; }
+.viz canvas:active { cursor: grabbing; }
+.viz canvas:focus-visible { outline: 2px solid var(--red); outline-offset: 2px; }
+.cap2 { font-size: 12px; font-weight: 700; color: var(--muted); margin-top: 12px; }
+.cap2 b { color: var(--fg); }
+.sw { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 8px; }
+.sw button { width: 34px; height: 34px; border-radius: 50%; cursor: pointer; padding: 0; border: 1.5px solid rgba(0,0,0,.18); box-shadow: inset 0 -3px 0 rgba(0,0,0,.08); }
+.sw button[aria-pressed="true"] { outline: 2.5px solid var(--fg); outline-offset: 2px; }
+.sw button:focus-visible { outline: 2.5px solid var(--red); outline-offset: 2px; }
+.v3hint { font-size: 11px; font-weight: 700; color: var(--muted); margin-top: 2px; text-align: center; }
+.v3hint span { color: var(--red); }
 .sliders { display: flex; flex-direction: column; gap: 10px; }
 .srow { display: flex; flex-direction: column; gap: 2px; }
 .srow .cap { display: flex; justify-content: space-between; font-size: 11px; font-weight: 700; color: var(--muted); }
@@ -134,6 +144,13 @@ input[type=range]:focus-visible { outline: 2px solid var(--fg); outline-offset: 
     </div>
     <div class="label" style="margin-top:16px">Начинка</div>
     <div class="seg wrap" id="fillSeg" role="group" aria-label="Начинка"></div>
+    <div class="label" style="margin-top:16px">Покрытие и крем</div>
+    <div class="seg" id="coatSeg" role="group" aria-label="Покрытие"></div>
+    <div id="coatColors" hidden>
+      <div class="cap2">Цвет крема: <b id="coatName"></b></div>
+      <div class="sw" id="swSeg" role="group" aria-label="Цвет покрытия"></div>
+      <p class="hint" style="margin-top:6px">Цвет дают пищевым красителем, в себестоимость он не входит.</p>
+    </div>
   </section>
 
   <div class="warn" id="warn" hidden>
@@ -200,10 +217,23 @@ var RECIPES = {
     note: 'Базовый рецепт рассчитан на форму 20 см, шесть коржей по 0,5 см. Высота — толщина одного коржа, чем он толще, тем больше теста. Каждый корж пекут отдельно. Готовому торту нужно 8–12 часов, чтобы пропитаться. Яйца считаются по 50 г.'
   }
 };
+var COATS = [['none', 'Без покрытия'], ['smooth', 'Гладкое'], ['strokes', 'Мазки кремом']];
+var COAT_COLORS = [['white', 'Белый', '#f7f3ec'], ['vanilla', 'Ванильный', '#f1e0bd'], ['pink', 'Розовый', '#f2bfcc'], ['peach', 'Персиковый', '#f6c9a8'],
+  ['red', 'Красный', '#c8102e'], ['choco', 'Шоколадный', '#6b3e26'], ['caramel', 'Карамельный', '#c98a4b'], ['blue', 'Голубой', '#b9d6ee'],
+  ['mint', 'Мятный', '#b7e3cf'], ['lavender', 'Лавандовый', '#d3c3ea'], ['yellow', 'Лимонный', '#f6e38a'], ['black', 'Чёрный', '#2b2422']];
+function coatColor() { return COAT_COLORS.filter(function (c) { return c[0] === st.coatColor; })[0] || COAT_COLORS[0]; }
+function coatHex() { return coatColor()[2]; }
+// Крем на покрытие рассчитан на торт 20 см базовой высоты; мазкам нужно меньше крема, чем ровному слою
+function coatGroup() {
+  if (st.coat === 'none') return [];
+  var k = st.coat === 'smooth' ? 1 : 0.7, col = coatColor();
+  return [{ name: 'Покрытие', tag: (st.coat === 'smooth' ? 'гладкое' : 'мазками') + ' · ' + col[1].toLowerCase(), by: 'surface', color: col[2],
+    items: [['Сливочный сыр', 300 * k, 'г'], ['Сливочное масло', 100 * k, 'г'], ['Сахарная пудра', 80 * k, 'г']] }];
+}
 function groupsFor() {
   var R = RECIPES[st.recipe];
   var f = R.fillings.filter(function (x) { return x.id === st.fill; })[0] || R.fillings[0];
-  return R.pre.concat(f.groups, R.post);
+  return R.pre.concat(f.groups, R.post, coatGroup());
 }
 var EGG_G = 50, BASE_AREA = Math.PI * 100, LIMIT = 1.6;
 var CHAINS = [['pyat', 'Пятёрочка'], ['magnit', 'Магнит'], ['perek', 'Перекрёсток'], ['auchan', 'Ашан']];
@@ -285,7 +315,7 @@ function loadRemotePrices() {
     buildPrices(); priceKey = ''; render(false); showPriceDate();
   }).catch(function () {});
 }
-var st = { chain: 'min', portions: null, recipe: 'biscuit', fill: 'berry', h: 10, n: 3, shape: 'circle', d: 24, a: 24, a2: 30, b: 40, twoOn: false };
+var st = { chain: 'min', portions: null, recipe: 'biscuit', fill: 'berry', h: 10, n: 3, shape: 'circle', d: 24, a: 24, a2: 30, b: 40, twoOn: false, coat: 'none', coatColor: 'white' };
 var $ = function (id) { return document.getElementById(id); };
 
 function pl(n) { var m = n % 10, t = n % 100; return (m === 1 && t !== 11) ? 'корж' : (m >= 2 && m <= 4 && (t < 12 || t > 14)) ? 'коржа' : 'коржей'; }
@@ -321,29 +351,330 @@ function sizeText() {
   return st.a2 + '×' + st.b;
 }
 
-function vizSVG(c) {
+// Объёмный торт: свой маленький 3D-рендер на canvas (z-буфер), без библиотек.
+// Тянуть по горизонтали — вращение влево/вправо, по вертикали — небольшой наклон.
+var V3 = { yaw: -Math.PI / 2 + 0.55, pitch: 0.46, PMIN: 0.21, PMAX: 0.75, vy: 0, geo: null, dirty: true, raf: 0, cv: null, off: null };
+function v3css(name, fb) {
+  var v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  return v || fb;
+}
+function v3rgb(c) {
+  if (c.indexOf('var(') === 0) c = v3css(c.slice(4, -1).trim(), '#e3b04b');
+  var m = /^#?([0-9a-f]{6})$/i.exec(c.trim());
+  if (m) { var n = parseInt(m[1], 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; }
+  return [227, 176, 75];
+}
+function v3mix(a, k) { return [Math.min(255, a[0] * k), Math.min(255, a[1] * k), Math.min(255, a[2] * k)]; }
+
+// Толщины слоёв торта снизу вверх (корж, крем, корж...) в см
+function cakeStack(recipe, h, n) {
+  var M = recipe === 'medovik', out = [], spT, crT;
+  if (M) { spT = h; crT = st.fill === 'prune' || st.fill === 'cherry' ? 0.5 : 0.35; }
+  else { crT = st.fill === 'none' ? Math.min(1, h / n * 0.18) : Math.min(1.8, h / n * 0.34); spT = (h - crT * (n - 1)) / n; }
+  for (var i = 0; i < n; i++) { if (i) out.push(['cream', crT]); out.push(['sponge', spT]); }
+  return out;
+}
+function cakeH(recipe, h, n) { return cakeStack(recipe, h, n).reduce(function (s, l) { return s + l[1]; }, 0); }
+// Во сколько раз поверхность торта (верх + бока) больше, чем у базового рецепта 20 см
+function surfRatio() {
+  var R = RECIPES[st.recipe], H = cakeH(st.recipe, st.h, st.n), A, P;
+  if (st.shape === 'circle') { A = Math.PI * st.d * st.d / 4; P = Math.PI * st.d; }
+  else if (st.shape === 'square') { A = st.a * st.a; P = 4 * st.a; }
+  else { A = st.a2 * st.b; P = 2 * (st.a2 + st.b); }
+  return (A + P * H) / (BASE_AREA + 20 * Math.PI * cakeH(st.recipe, R.h, R.n));
+}
+
+// Слои торта снизу вверх: [толщина, цвет снаружи, цвет в разрезе]
+// Процедурные текстуры разреза: пористый корж, крем, начинка с кусочками
+function v3hash(i, j, k) {
+  var n = Math.imul(i, 374761393) ^ Math.imul(j, 668265263) ^ Math.imul(k, 1274126177);
+  n = Math.imul(n ^ (n >>> 13), 1103515245); return ((n ^ (n >>> 16)) >>> 0) / 4294967296;
+}
+function v3grain(x, y, z, s) { return v3hash(Math.floor(x / s), Math.floor(y / s), Math.floor(z / s)); }
+// кусочки: в каждой ячейке размера s — один кусочек со своим цветом
+function v3piece(x, y, z, s, dens, rk) {
+  var i = Math.floor(x / s), j = Math.floor(y / s), k = Math.floor(z / s);
+  if (v3hash(i, j, k) > dens) return -1;
+  var cx = (i + 0.25 + 0.5 * v3hash(i + 7, j, k)) * s, cy = (j + 0.25 + 0.5 * v3hash(i, j + 7, k)) * s, cz = (k + 0.25 + 0.5 * v3hash(i, j, k + 7)) * s;
+  var r = s * rk * (0.6 + 0.4 * v3hash(i + 3, j + 5, k)), d = (x - cx) * (x - cx) + (y - cy) * (y - cy) + (z - cz) * (z - cz);
+  return d < r * r ? 1 - Math.sqrt(d) / r : -1;
+}
+function v3tint(c, k) { return [c[0] * k, c[1] * k, c[2] * k]; }
+var FILL_LOOK = {
+  // бисквит: начинка внутри бортика из крема
+  berry: { base: [150, 24, 58], pieces: [[205, 38, 78], [62, 36, 98], [230, 70, 100], [120, 10, 40]], ps: 0.5, pd: 0.85, pr: 0.5 },
+  choco: { base: [74, 40, 24], gloss: true },
+  lemon: { base: [242, 205, 62] },
+  condensed: { base: [170, 104, 48] },
+  // медовик: кусочки в креме
+  prune: { pieces: [[48, 24, 40], [70, 34, 54], [200, 160, 100]], ps: 0.55, pd: 0.6, pr: 0.5 },
+  cherry: { pieces: [[130, 12, 34], [168, 22, 48]], ps: 0.55, pd: 0.65, pr: 0.5 }
+};
+var CREAM_LOOK = { biscuit: [247, 240, 228], sour: [246, 236, 214], custard: [244, 223, 160], condensed: [233, 206, 158], prune: [246, 236, 214], cherry: [246, 236, 214] };
+function v3spongeTex(base) {
+  return function () { return function (x, y, z) {
+    var g = v3grain(x, y, z, 0.09), h = v3grain(x + 0.04, y, z * 1.7, 0.22);
+    return v3tint(base, g < 0.22 ? 0.82 : g > 0.85 ? 1.06 : 1) .map(function (v, q) { return v * (h < 0.12 ? 0.9 : 1); });
+  }; };
+}
+function v3creamTex(cream, look, M) {
+  return function (z0, z1, R) { return function (x, y, z) {
+    var c = cream, gr = v3grain(x, y, z, 0.1);
+    if (look && !M && look.base) {
+      var r = Math.sqrt(x * x + y * y), mid = (z - z0) / (z1 - z0), dam = Math.max(0.8, R * 0.09);
+      if (r < R - dam && mid > 0.12 && mid < 0.88) {
+        c = look.base;
+        if (look.pieces) { var p = v3piece(x, y, z, look.ps, look.pd, look.pr); if (p >= 0) c = v3tint(look.pieces[Math.floor(v3hash(Math.floor(x / look.ps), Math.floor(y / look.ps), Math.floor(z / look.ps) + 11) * look.pieces.length)], 0.85 + 0.3 * p); }
+        if (look.gloss) c = v3tint(c, 0.95 + 0.1 * gr);
+        else c = v3tint(c, 0.97 + 0.06 * gr);
+        return c;
+      }
+    }
+    if (look && M && look.pieces) {
+      var p2 = v3piece(x, y, z * 0.6, look.ps, look.pd, look.pr);
+      if (p2 >= 0) return v3tint(look.pieces[Math.floor(v3hash(Math.floor(x / look.ps), Math.floor(y / look.ps), 3) * look.pieces.length)], 0.85 + 0.3 * p2);
+    }
+    return v3tint(c, 0.97 + 0.05 * gr);
+  }; };
+}
+// Слои торта снизу вверх: [толщина, цвет снаружи, цвет в разрезе, текстура разреза]
+function v3layers() {
   var M = st.recipe === 'medovik';
-  var layers = [];
-  for (var li = 0; li < st.n; li++) { if (li) layers.push('cream'); layers.push('sponge'); }
-  if (st.shape === 'circle') {
-    var w = st.d * 6, x = 150 - w / 2, y = 8, out = '<svg width="300" height="170" viewBox="0 0 300 170" role="img" aria-label="Торт в разрезе">';
-    out += '<rect x="90" y="2" width="120" height="166" rx="3" fill="none" stroke="var(--muted)" stroke-width="1.2" stroke-dasharray="4 4"/>';
-    var hf = st.h / RECIPES[st.recipe].h, gaps = M ? 3 : 6;
-    var hs = layers.map(function (k) { return k === 'sponge' ? (M ? 10 * hf : 60 * hf / st.n) : (M ? 4 : 5); });
-    var tot = hs.reduce(function (s, v) { return s + v; }, 0) + gaps * (hs.length - 1), kk = Math.min(1, 156 / tot);
-    hs = hs.map(function (v) { return v * kk; }); gaps *= kk;
-    layers.forEach(function (k, i) {
-      out += '<rect x="' + x + '" y="' + y + '" width="' + w + '" height="' + hs[i] + '" rx="4" fill="' + (k === 'sponge' ? (M ? '#b9772e' : 'var(--sponge)') : (M ? '#f1dfb8' : 'var(--cream)')) + '"/>';
-      y += hs[i] + gaps;
-    });
-    return out + '</svg>';
+  var sp = v3rgb(M ? '#b9772e' : 'var(--sponge)');
+  var crc = CREAM_LOOK[M ? st.fill : 'biscuit'] || CREAM_LOOK.sour;
+  var look = FILL_LOOK[st.fill] || null;
+  var spTex = v3spongeTex(v3mix(sp, 1.1)), crTex = v3creamTex(crc, look, M);
+  return cakeStack(st.recipe, st.h, st.n).map(function (l) {
+    return l[0] === 'cream' ? [l[1], crc, crc, crTex] : [l[1], v3mix(sp, M ? 0.92 : 0.86), v3mix(sp, 1.1), spTex];
+  });
+}
+
+// Геометрия: список граней [точки, нормаль-подсказка наружу, цвет]
+function v3build() {
+  var L = v3layers(), faces = [], z = 0, H = 0;
+  L.forEach(function (l) { H += l[0]; });
+  var coat = st.coat || 'none', strokes = coat === 'strokes', coated = coat !== 'none';
+  var cc = coated ? v3rgb(coatHex()) : null, ccCut = coated ? v3mix(cc, 1.04) : null;
+  var t = coat === 'smooth' ? 0.5 : 0.45, Ht = coated ? H + t : H;
+  var top = L[L.length - 1][1];
+  function face(p, n, col, tex) { faces.push([p, n, col, tex]); }
+  // рельеф мазков: горизонтальные волнистые полосы от лопатки
+  function bump(u, zz) {
+    var s = Math.sin(zz * 2.3 + 1.4 * Math.sin(u * 0.9) + 0.6 * Math.sin(u * 2.7 + zz));
+    return 0.3 + 0.7 * (0.5 + 0.5 * s) * (0.7 + 0.3 * Math.sin(u * 1.7 + zz * 0.8));
   }
-  var sa = st.shape === 'square' ? st.a : st.a2, sb = st.shape === 'square' ? st.a : st.b;
-  var k = 100 / Math.max(sa, sb, 20), rw = sa * k, rh = sb * k;
-  var cx = 80, cy = 60;
-  return '<svg width="160" height="120" viewBox="0 0 160 120" role="img" aria-label="Форма сверху">' +
-    '<rect x="' + (cx - rw / 2) + '" y="' + (cy - rh / 2) + '" width="' + rw + '" height="' + rh + '" rx="4" fill="var(--pink)" stroke="var(--fg)" stroke-width="2.5"/>' +
-    '<circle cx="' + cx + '" cy="' + cy + '" r="' + (10 * k) + '" fill="none" stroke="var(--red)" stroke-width="1.5" stroke-dasharray="4 3"/></svg>';
+  function zSteps(z0, z1, step) { var n = Math.max(1, Math.ceil((z1 - z0) / step)), a = []; for (var i = 0; i <= n; i++) a.push(z0 + (z1 - z0) * i / n); return a; }
+  var R, ext, foot = [];
+  if (st.shape === 'circle') {
+    R = st.d / 2;
+    var cut = 1.2, a1 = cut / 2, a2 = Math.PI * 2 - cut / 2, N = strokes ? 96 : 72;
+    var rad = function (th, zz) { return !coated ? R : !strokes ? R + t : R + t * bump(th * R / 3, zz); };
+    ext = R + (coated ? t : 0);
+    var cos = Math.cos, sin = Math.sin;
+    L.forEach(function (l) {
+      var z0 = z, z1 = z + l[0];
+      if (!coated) for (var i = 0; i < N; i++) {
+        var t0 = a1 + (a2 - a1) * i / N, t1 = a1 + (a2 - a1) * (i + 1) / N, tm = (t0 + t1) / 2;
+        face([[R * cos(t0), R * sin(t0), z0], [R * cos(t1), R * sin(t1), z0], [R * cos(t1), R * sin(t1), z1], [R * cos(t0), R * sin(t0), z1]], [cos(tm), sin(tm), 0], l[1]);
+      }
+      var tx = l[3] ? l[3](z0, z1, R) : null;
+      face([[0, 0, z0], [R * cos(a1), R * sin(a1), z0], [R * cos(a1), R * sin(a1), z1], [0, 0, z1]], [sin(a1), -cos(a1), 0], l[2], tx);
+      face([[0, 0, z0], [R * cos(a2), R * sin(a2), z0], [R * cos(a2), R * sin(a2), z1], [0, 0, z1]], [-sin(a2), cos(a2), 0], l[2], tx);
+      z = z1;
+    });
+    if (coated) {
+      var zs = zSteps(0, H, strokes ? 0.3 : 4).concat(zSteps(H, Ht, 1).slice(1));
+      for (var i = 0; i < N; i++) {
+        var t0 = a1 + (a2 - a1) * i / N, t1 = a1 + (a2 - a1) * (i + 1) / N, tm = (t0 + t1) / 2;
+        for (var k = 0; k + 1 < zs.length; k++) {
+          var za = zs[k], zb_ = zs[k + 1];
+          var r00 = rad(t0, za), r10 = rad(t1, za), r11 = rad(t1, zb_), r01 = rad(t0, zb_);
+          face([[r00 * cos(t0), r00 * sin(t0), za], [r10 * cos(t1), r10 * sin(t1), za], [r11 * cos(t1), r11 * sin(t1), zb_], [r01 * cos(t0), r01 * sin(t0), zb_]], [cos(tm), sin(tm), 0], cc);
+        }
+      }
+      // покрытие в разрезе: полоска по краю и слой сверху
+      [[a1, [sin(a1), -cos(a1), 0]], [a2, [-sin(a2), cos(a2), 0]]].forEach(function (A) {
+        var a = A[0];
+        for (var k = 0; k + 1 < zs.length; k++) {
+          var za = zs[k], zb_ = zs[k + 1], inner = zb_ <= H + 1e-6 ? R : 0;
+          var ra = rad(a, za), rb = rad(a, zb_);
+          face([[inner * cos(a), inner * sin(a), za], [ra * cos(a), ra * sin(a), za], [rb * cos(a), rb * sin(a), zb_], [inner * cos(a), inner * sin(a), zb_]], A[1], ccCut);
+        }
+      });
+    }
+    // верх
+    var rings = strokes ? 14 : 1;
+    for (var j = 0; j < N; j++) {
+      var u0 = a1 + (a2 - a1) * j / N, u1 = a1 + (a2 - a1) * (j + 1) / N;
+      var e0 = rad(u0, Ht), e1 = rad(u1, Ht);
+      for (var q = 0; q < rings; q++) {
+        var f0 = q / rings, f1 = (q + 1) / rings;
+        var tz = function (f, u) { return Ht + (strokes ? 0.35 * t * Math.sin(Math.PI * f) * Math.sin(f * R * 1.6 + u * 2) : 0); };
+        var pA = [f0 * e0 * cos(u0), f0 * e0 * sin(u0), tz(f0, u0)], pB = [f1 * e0 * cos(u0), f1 * e0 * sin(u0), tz(f1, u0)];
+        var pC = [f1 * e1 * cos(u1), f1 * e1 * sin(u1), tz(f1, u1)], pD = [f0 * e1 * cos(u1), f0 * e1 * sin(u1), tz(f0, u1)];
+        face(q ? [pA, pB, pC, pD] : [pA, pB, pC], [0, 0, 1], coated ? cc : top);
+      }
+    }
+    for (var m = 0; m <= 48; m++) { var tt = m / 48 * Math.PI * 2; foot.push([ext * cos(tt), ext * sin(tt)]); }
+  } else {
+    var w = (st.shape === 'square' ? st.a : st.a2) / 2, d = (st.shape === 'square' ? st.a : st.b) / 2;
+    var o = coated ? t : 0, W = w + o, D = d + o;
+    ext = Math.sqrt(W * W + D * D);
+    if (!coated) {
+      L.forEach(function (l) {
+        var z0 = z, z1 = z + l[0];
+        face([[-w, -d, z0], [w, -d, z0], [w, -d, z1], [-w, -d, z1]], [0, -1, 0], l[1]);
+        face([[w, d, z0], [-w, d, z0], [-w, d, z1], [w, d, z1]], [0, 1, 0], l[1]);
+        face([[w, -d, z0], [w, d, z0], [w, d, z1], [w, -d, z1]], [1, 0, 0], l[1]);
+        face([[-w, d, z0], [-w, -d, z0], [-w, -d, z1], [-w, d, z1]], [-1, 0, 0], l[1]);
+        z = z1;
+      });
+      face([[-w, -d, H], [w, -d, H], [w, d, H], [-w, d, H]], [0, 0, 1], top);
+    } else {
+      // четыре стороны: [начало, направление вдоль, длина, нормаль]
+      var sides = [[[-W, -D], [1, 0], 2 * W, [0, -1]], [[W, -D], [0, 1], 2 * D, [1, 0]], [[W, D], [-1, 0], 2 * W, [0, 1]], [[-W, D], [0, -1], 2 * D, [-1, 0]]];
+      var zs2 = strokes ? zSteps(0, Ht, 0.3) : [0, Ht];
+      sides.forEach(function (s, si) {
+        var nu = strokes ? Math.max(8, Math.round(s[2] / 0.8)) : 1;
+        function pt(i, zz) {
+          var u = s[2] * i / nu, f = Math.sin(Math.PI * i / nu), dd = strokes ? t * (bump(u * 0.5 + si * 5, zz) - 1) * f : 0;
+          return [s[0][0] + s[1][0] * u + s[3][0] * dd, s[0][1] + s[1][1] * u + s[3][1] * dd, zz];
+        }
+        for (var i = 0; i < nu; i++) for (var k = 0; k + 1 < zs2.length; k++)
+          face([pt(i, zs2[k]), pt(i + 1, zs2[k]), pt(i + 1, zs2[k + 1]), pt(i, zs2[k + 1])], [s[3][0], s[3][1], 0], cc);
+      });
+      var gu = strokes ? Math.max(6, Math.round(2 * W / 0.8)) : 1, gv = strokes ? Math.max(6, Math.round(2 * D / 0.8)) : 1;
+      var tp = function (i, j) {
+        var x = -W + 2 * W * i / gu, y = -D + 2 * D * j / gv;
+        var e = strokes ? 0.35 * t * Math.sin(Math.PI * i / gu) * Math.sin(Math.PI * j / gv) * Math.sin(y * 1.6 + 0.8 * Math.sin(x * 0.5)) : 0;
+        return [x, y, Ht + e];
+      };
+      for (var i2 = 0; i2 < gu; i2++) for (var j2 = 0; j2 < gv; j2++) face([tp(i2, j2), tp(i2 + 1, j2), tp(i2 + 1, j2 + 1), tp(i2, j2 + 1)], [0, 0, 1], cc);
+    }
+    foot = [[-W, -D], [W, -D], [W, D], [-W, D]];
+  }
+  // настоящие нормали граней (нужны для рельефа мазков), направленные наружу
+  faces.forEach(function (f) {
+    var p = f[0], a = p[0], b = p[1], c = p[p.length - 1], e = p.length > 3 ? p[2] : p[2];
+    var ux = (p.length > 3 ? p[2][0] - a[0] : b[0] - a[0]), uy = (p.length > 3 ? p[2][1] - a[1] : b[1] - a[1]), uz = (p.length > 3 ? p[2][2] - a[2] : b[2] - a[2]);
+    var vx = (p.length > 3 ? p[3][0] - b[0] : c[0] - a[0]), vy = (p.length > 3 ? p[3][1] - b[1] : c[1] - a[1]), vz = (p.length > 3 ? p[3][2] - b[2] : c[2] - a[2]);
+    var nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx, l = Math.sqrt(nx * nx + ny * ny + nz * nz);
+    if (l < 1e-9) return;
+    nx /= l; ny /= l; nz /= l;
+    if (nx * f[1][0] + ny * f[1][1] + nz * f[1][2] < 0) { nx = -nx; ny = -ny; nz = -nz; }
+    f[1] = [nx, ny, nz];
+  });
+  return { faces: faces, H: Ht, ext: ext, foot: foot };
+}
+
+function v3init() {
+  if (V3.cv) return;
+  var box = $('viz');
+  box.innerHTML = '<canvas id="cake3d" tabindex="0" role="img" aria-label="Объёмный торт. Потяните, чтобы повернуть"></canvas>' +
+    '<div class="v3hint">↔ Потяните, чтобы повернуть · <span>пунктир — форма 20 см</span></div>';
+  V3.cv = $('cake3d'); V3.off = document.createElement('canvas');
+  var cv = V3.cv, last = null, lt = 0;
+  cv.addEventListener('pointerdown', function (e) { last = [e.clientX, e.clientY]; lt = performance.now(); V3.vy = 0; cv.setPointerCapture(e.pointerId); });
+  cv.addEventListener('pointermove', function (e) {
+    if (!last) return;
+    var dx = e.clientX - last[0], dy = e.clientY - last[1], now = performance.now();
+    V3.yaw += dx * 0.012; V3.pitch = Math.max(V3.PMIN, Math.min(V3.PMAX, V3.pitch + dy * 0.006));
+    V3.vy = dx * 0.012 / Math.max(8, now - lt) * 16; lt = now;
+    last = [e.clientX, e.clientY]; v3req();
+  });
+  function up() { last = null; if (performance.now() - lt > 80) V3.vy = 0; v3req(); }
+  cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
+  cv.addEventListener('keydown', function (e) {
+    var k = e.key;
+    if (k === 'ArrowLeft') V3.yaw -= 0.15; else if (k === 'ArrowRight') V3.yaw += 0.15;
+    else if (k === 'ArrowUp') V3.pitch = Math.max(V3.PMIN, V3.pitch - 0.06);
+    else if (k === 'ArrowDown') V3.pitch = Math.min(V3.PMAX, V3.pitch + 0.06);
+    else return;
+    e.preventDefault(); v3req();
+  });
+  if (window.ResizeObserver) new ResizeObserver(function () { v3req(); }).observe(cv);
+  if (window.matchMedia) { var mq = matchMedia('(prefers-color-scheme: dark)'); if (mq.addEventListener) mq.addEventListener('change', function () { V3.geo = v3build(); v3req(); }); }
+}
+function v3req() { if (!V3.raf) V3.raf = requestAnimationFrame(v3draw); }
+
+function viz3d() { v3init(); V3.geo = v3build(); v3req(); }
+
+function v3draw() {
+  V3.raf = 0;
+  var cv = V3.cv, g = V3.geo; if (!cv || !g) return;
+  if (V3.vy && Math.abs(V3.vy) > 0.0005) { V3.yaw += V3.vy; V3.vy *= 0.93; v3req(); } else V3.vy = 0;
+  var cw = cv.clientWidth || 320, ch = cv.clientHeight || 230, dpr = Math.min(window.devicePixelRatio || 1, 3);
+  if (cv.width !== Math.round(cw * dpr) || cv.height !== Math.round(ch * dpr)) { cv.width = Math.round(cw * dpr); cv.height = Math.round(ch * dpr); }
+  var bd = Math.min(dpr, 2), ss = Math.min(2, Math.sqrt(900000 / (cw * bd * ch * bd)));
+  var iw = Math.round(cw * bd * ss), ih = Math.round(ch * bd * ss), px = iw / cw;
+  var off = V3.off; if (off.width !== iw || off.height !== ih) { off.width = iw; off.height = ih; V3.img = null; }
+  var oc = off.getContext('2d');
+  if (!V3.img) { V3.img = oc.createImageData(iw, ih); V3.zb = new Float32Array(iw * ih); V3.pb = new Uint32Array(V3.img.data.buffer); }
+  var pb = V3.pb, zb = V3.zb; pb.fill(0); zb.fill(1e9);
+
+  var yaw = V3.yaw, p = V3.pitch, cy_ = Math.cos(yaw), sy = Math.sin(yaw), cp = Math.cos(p), sp = Math.sin(p);
+  var maxP = Math.sin(V3.PMAX), refExt = 18;
+  var S = Math.min(cw * 0.9 / (2 * Math.max(g.ext, refExt)), ch * 0.86 / (2 * Math.max(g.ext, 10) * maxP + g.H)) * px;
+  var ox = iw / 2, oy = ih / 2;
+  // центр по вертикали: середина между низом переднего края и верхом заднего
+  var yTop = g.H * cp + g.ext * sp, yBot = -g.ext * sp;
+  var mid = (yTop + yBot) / 2;
+  function P(v) {
+    var x = v[0] * cy_ - v[1] * sy, y = v[0] * sy + v[1] * cy_;
+    return [ox + x * S, oy - (v[2] * cp + y * sp - mid) * S, y * cp - v[2] * sp];
+  }
+  var Lx = -0.45, Ly = -0.6, Lz = 0.75, Ll = Math.sqrt(Lx * Lx + Ly * Ly + Lz * Lz); Lx /= Ll; Ly /= Ll; Lz /= Ll;
+
+  function tri(a, b, c, col, tex, wa, wb, wc, lt) {
+    var minx = Math.max(0, Math.floor(Math.min(a[0], b[0], c[0]))), maxx = Math.min(iw - 1, Math.ceil(Math.max(a[0], b[0], c[0])));
+    var miny = Math.max(0, Math.floor(Math.min(a[1], b[1], c[1]))), maxy = Math.min(ih - 1, Math.ceil(Math.max(a[1], b[1], c[1])));
+    var ar = (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0]);
+    if (Math.abs(ar) < 1e-9) return;
+    var inv = 1 / ar;
+    for (var y = miny; y <= maxy; y++) {
+      var py = y + 0.5, row = y * iw;
+      for (var x = minx; x <= maxx; x++) {
+        var pxx = x + 0.5;
+        var w0 = ((b[0] - pxx) * (c[1] - py) - (b[1] - py) * (c[0] - pxx)) * inv;
+        var w1 = ((c[0] - pxx) * (a[1] - py) - (c[1] - py) * (a[0] - pxx)) * inv;
+        var w2 = 1 - w0 - w1;
+        if (w0 < -1e-6 || w1 < -1e-6 || w2 < -1e-6) continue;
+        var z = w0 * a[2] + w1 * b[2] + w2 * c[2], i = row + x;
+        if (z < zb[i]) {
+          zb[i] = z;
+          if (tex) {
+            var tc = tex(w0 * wa[0] + w1 * wb[0] + w2 * wc[0], w0 * wa[1] + w1 * wb[1] + w2 * wc[1], w0 * wa[2] + w1 * wb[2] + w2 * wc[2]);
+            pb[i] = (255 << 24 | Math.min(255, tc[2] * lt) << 16 | Math.min(255, tc[1] * lt) << 8 | Math.min(255, tc[0] * lt)) >>> 0;
+          } else pb[i] = col;
+        }
+      }
+    }
+  }
+  g.faces.forEach(function (f) {
+    var n = f[1], nx = n[0] * cy_ - n[1] * sy, ny = n[0] * sy + n[1] * cy_, nz = n[2];
+    if (ny * cp - nz * sp > 0.001) return;               // грань смотрит от нас
+    var l = 0.6 + 0.5 * Math.max(0, nx * Lx + ny * Ly + nz * Lz);
+    var c = f[2], r = Math.min(255, c[0] * l) | 0, gg = Math.min(255, c[1] * l) | 0, bb = Math.min(255, c[2] * l) | 0;
+    var col = (255 << 24 | bb << 16 | gg << 8 | r) >>> 0;
+    var q = f[0].map(P);
+    var wp = f[0];
+    for (var k = 1; k + 1 < q.length; k++) tri(q[0], q[k], q[k + 1], col, f[3], wp[0], wp[k], wp[k + 1], l);
+  });
+  oc.putImageData(V3.img, 0, 0);
+
+  var ctx = cv.getContext('2d'), sc = dpr / px;
+  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, cv.width, cv.height);
+  ctx.setTransform(sc, 0, 0, sc, 0, 0);
+  // тень
+  ctx.save(); ctx.beginPath();
+  g.foot.forEach(function (f, i) { var q = P([f[0] * 1.04, f[1] * 1.04, 0]); i ? ctx.lineTo(q[0], q[1] + 2 * px) : ctx.moveTo(q[0], q[1] + 2 * px); });
+  ctx.closePath(); ctx.shadowColor = 'rgba(0,0,0,.28)'; ctx.shadowBlur = 10 * px * sc; ctx.fillStyle = 'rgba(0,0,0,.10)'; ctx.fill(); ctx.restore();
+  // эталонная форма 20 см
+  ctx.beginPath();
+  for (var k = 0; k <= 64; k++) { var t = k / 64 * Math.PI * 2, q = P([10 * Math.cos(t), 10 * Math.sin(t), 0]); k ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1]); }
+  ctx.strokeStyle = v3css('--red', '#c8102e'); ctx.lineWidth = 1.5 * px; ctx.setLineDash([4 * px, 3 * px]); ctx.stroke(); ctx.setLineDash([]);
+  ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(off, 0, 0);
 }
 
 function sliderHTML(id, label, min, max, val, unit, step) {
@@ -385,6 +716,13 @@ function buildFill() {
   });
 }
 
+function buildCoat() {
+  $('coatSeg').innerHTML = COATS.map(function (c) { return '<button type="button" data-coat="' + c[0] + '" aria-pressed="' + (c[0] === st.coat) + '">' + c[1] + '</button>'; }).join('');
+  $('swSeg').innerHTML = COAT_COLORS.map(function (c) { return '<button type="button" data-col="' + c[0] + '" style="background:' + c[2] + '" aria-label="' + c[1] + '" title="' + c[1] + '" aria-pressed="' + (c[0] === st.coatColor) + '"></button>'; }).join('');
+  document.querySelectorAll('#coatSeg button').forEach(function (b) { b.addEventListener('click', function () { st.coat = b.dataset.coat; render(false); }); });
+  document.querySelectorAll('#swSeg button').forEach(function (b) { b.addEventListener('click', function () { st.coatColor = b.dataset.col; render(false); }); });
+}
+buildCoat();
 var priceKey = '';
 function renderCost(used, order, c) {
   var total = 0;
@@ -456,7 +794,7 @@ function render(rebuild) {
   $('formLabel').textContent = st.shape === 'circle' ? 'Диаметр формы' : 'Форма';
   $('size').innerHTML = sizeText() + '<small>см</small>';
   $('mult').textContent = '×' + c.eff.toFixed(2).replace('.', ',');
-  $('viz').innerHTML = vizSVG(c);
+  viz3d(c);
   var R = RECIPES[st.recipe];
   var half = Math.round(st.h / 2 * 10) / 10;
   $('chipH').textContent = c.two ? 'Высота ' + fmt(st.h) + ' → ' + fmt(half) + ' см' : (R.hPer ? 'Высота коржа ' : 'Высота ') + fmt(st.h) + ' см';
@@ -469,13 +807,16 @@ function render(rebuild) {
   document.querySelectorAll('.seg button[data-shape]').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.shape === st.shape)); });
   document.querySelectorAll('.seg button[data-recipe]').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.recipe === st.recipe)); });
   document.querySelectorAll('#fillSeg button').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.fill === st.fill)); });
+  document.querySelectorAll('#coatSeg button').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.coat === st.coat)); });
+  document.querySelectorAll('#swSeg button').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.col === st.coatColor)); });
+  $('coatColors').hidden = st.coat === 'none'; $('coatName').textContent = coatColor()[1].toLowerCase();
 
   var total = 0, html = '', used = {}, usedOrder = [];
   groupsFor().forEach(function (g) {
     html += '<div class="group"><div class="gh"><i style="background:' + g.color + '"></i><b>' + g.name + '</b><span>' + (g.by === 'dough' ? st.n + ' ' + pl(st.n) + (g.sfx || '') : g.tag) + '</span></div>';
     g.items.forEach(function (it) {
-      var gf = g.by === 'dough' ? c.hf : g.by === 'layers' ? c.lf : 1;
-      var v = it[1] * c.aS * gf * (c.two ? 0.5 : 1), shown;
+      var gf = g.by === 'dough' ? c.hf : g.by === 'layers' ? c.lf : g.by === 'surface' ? surfRatio() / c.aS : 1;
+      var v = it[1] * c.aS * gf * (c.two && g.by !== 'surface' ? 0.5 : 1), shown;
       var qty;
       if (it[2] === 'шт') { qty = Math.round(v); shown = qty + ' шт'; total += v * EGG_G; }
       else { qty = v; shown = weight(v) + ' г'; total += v; }
