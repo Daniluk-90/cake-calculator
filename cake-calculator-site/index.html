@@ -34,22 +34,22 @@
 body { background: var(--bg); color: var(--fg); font-family: var(--font); font-size: 15px;
   padding-block: 20px 32px; padding-left: max(16px, env(safe-area-inset-left, 0px));
   padding-right: max(16px, env(safe-area-inset-right, 0px)); }
-.wrap { max-width: 480px; margin: 0 auto; display: flex; flex-direction: column; gap: 12px; }
-.banner { background: var(--red); color: var(--red-ink); border-radius: 20px; padding: 18px 20px;
+.wrap { max-width: 480px; margin: 0 auto; display: flex; flex-direction: column; gap: 10px; }
+.banner { background: var(--red); color: var(--red-ink); border-radius: 18px; padding: 12px 16px;
   box-shadow: 0 4px 0 rgba(0,0,0,.18); }
-.banner h1 { margin: 0; font-size: 26px; line-height: 1.1; font-weight: 800; text-wrap: balance; }
-.banner p { margin: 6px 0 0; font-size: 14px; font-weight: 700; color: #ffe27a; }
-.card { background: var(--card); border-radius: 20px; padding: 16px 18px; min-width: 0;
+.banner h1 { margin: 0; font-size: 22px; line-height: 1.1; font-weight: 800; text-wrap: balance; }
+.banner p { margin: 3px 0 0; font-size: 13px; font-weight: 700; color: #ffe27a; }
+.card { background: var(--card); border-radius: 18px; padding: 14px 16px; min-width: 0;
   box-shadow: 0 1px 0 var(--line); }
 .label { font-size: 11px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
 .top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-top: 4px; }
-.big { font-size: 52px; line-height: 1; font-weight: 800; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.big { font-size: 44px; line-height: 1; font-weight: 800; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
 .big small { font-size: 20px; letter-spacing: 0; margin-left: 3px; }
-.badge { background: var(--pink); border-radius: 12px; padding: 8px 12px; text-align: right; flex: none; }
+.badge { background: var(--pink); border-radius: 12px; padding: 6px 10px; text-align: right; flex: none; }
 .badge b { display: block; font-size: 17px; color: var(--red); font-variant-numeric: tabular-nums; }
 .badge span { font-size: 11px; color: var(--muted); font-weight: 700; }
-.viz { display: flex; flex-direction: column; align-items: center; padding: 10px 0 4px; }
-.viz canvas { width: 100%; max-width: 360px; height: 230px; display: block; touch-action: none; cursor: grab; outline: none; border-radius: 14px; }
+.viz { display: flex; flex-direction: column; align-items: center; padding: 2px 0 2px; }
+.viz canvas { width: 100%; max-width: 360px; height: 200px; display: block; touch-action: none; cursor: grab; outline: none; border-radius: 14px; }
 .viz canvas:active { cursor: grabbing; }
 .viz canvas:focus-visible { outline: 2px solid var(--red); outline-offset: 2px; }
 .cap2 { font-size: 12px; font-weight: 700; color: var(--muted); margin-top: 12px; }
@@ -60,7 +60,7 @@ body { background: var(--bg); color: var(--fg); font-family: var(--font); font-s
 .sw button:focus-visible { outline: 2.5px solid var(--red); outline-offset: 2px; }
 .v3hint { font-size: 11px; font-weight: 700; color: var(--muted); margin-top: 2px; text-align: center; }
 .v3hint span { color: var(--red); }
-.sliders { display: flex; flex-direction: column; gap: 10px; }
+.sliders { display: flex; flex-direction: column; gap: 4px; margin-top: 4px; }
 .srow { display: flex; flex-direction: column; gap: 2px; }
 .srow .cap { display: flex; justify-content: space-between; font-size: 11px; font-weight: 700; color: var(--muted); }
 .srow .cap b { color: var(--fg); font-size: 12px; }
@@ -71,13 +71,13 @@ input[type=range]::-moz-range-progress { height: 6px; border-radius: 3px; backgr
 input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 26px; height: 26px; border-radius: 50%; background: var(--card); border: 3px solid var(--red); margin-top: -10px; }
 input[type=range]::-moz-range-thumb { width: 20px; height: 20px; border-radius: 50%; background: var(--card); border: 3px solid var(--red); }
 input[type=range]:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; border-radius: 6px; }
-.chips { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
-.chip { background: var(--chip); border-radius: 10px; padding: 9px 10px; text-align: center; font-size: 13px; font-weight: 800; transition: background .2s; }
+.chips { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+.chip { background: var(--chip); border-radius: 10px; padding: 7px 10px; text-align: center; font-size: 13px; font-weight: 800; transition: background .2s; }
 .chip.on { background: var(--pink); }
-.seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 8px; }
+.seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 6px; }
 .seg.two { grid-template-columns: 1fr 1fr; }
 .seg.wrap { grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); }
-.seg button { font: inherit; font-weight: 800; font-size: 13px; padding: 10px 4px; border-radius: 999px; cursor: pointer;
+.seg button { font: inherit; font-weight: 800; font-size: 13px; padding: 8px 4px; border-radius: 999px; cursor: pointer;
   border: 1.5px solid var(--line); background: transparent; color: var(--muted); }
 .seg button[aria-pressed="true"] { background: var(--fg); border-color: var(--fg); color: var(--bg); }
 .seg button:focus-visible, .toggle:focus-visible { outline: 2px solid var(--red); outline-offset: 2px; }
@@ -85,31 +85,46 @@ input[type=range]:focus-visible { outline: 2px solid var(--fg); outline-offset: 
 .warn em { font-style: normal; color: var(--red); }
 .toggle { margin-top: 10px; font: inherit; font-weight: 800; font-size: 12px; border-radius: 999px; padding: 7px 14px; cursor: pointer;
   border: 1.5px solid var(--fg); background: transparent; color: var(--fg); }
-.group { margin-top: 14px; }
+.group { margin-top: 10px; }
 .group:first-child { margin-top: 0; }
 .gh { display: flex; align-items: baseline; gap: 8px; margin-bottom: 4px; }
 .gh i { width: 9px; height: 9px; border-radius: 50%; flex: none; align-self: center; }
 .gh b { font-size: 17px; font-weight: 800; }
 .gh span { font-size: 10px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
-.row { display: flex; justify-content: space-between; align-items: baseline; padding: 5px 0; border-bottom: 1px solid var(--line); font-weight: 500; }
+.row { display: flex; justify-content: space-between; align-items: baseline; padding: 3px 0; border-bottom: 1px solid var(--line); font-weight: 500; }
 .row:last-child { border-bottom: 0; }
 .row b { font-weight: 800; font-variant-numeric: tabular-nums; background: var(--chip); padding: 1px 8px; border-radius: 6px; }
-.total { display: flex; justify-content: space-between; align-items: baseline; margin-top: 16px; padding-top: 12px; border-top: 2px solid var(--fg); font-weight: 800; }
-.total b { font-size: 26px; color: var(--red); font-variant-numeric: tabular-nums; }
+.total { display: flex; justify-content: space-between; align-items: baseline; margin-top: 10px; padding-top: 8px; border-top: 2px solid var(--fg); font-weight: 800; }
+.total b { font-size: 22px; color: var(--red); font-variant-numeric: tabular-nums; }
 .note { font-size: 12px; color: var(--muted); font-weight: 500; text-align: center; margin: 0; }
 .rc { font-style: normal; font-size: 11px; font-weight: 700; color: var(--muted); margin-left: 4px; white-space: nowrap; }
 .pstep { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 13px; font-weight: 700; color: var(--muted); }
 .pstep button { font: inherit; font-weight: 800; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; border: 1.5px solid var(--line); background: transparent; color: var(--fg); }
 .pstep b { color: var(--fg); min-width: 22px; text-align: center; font-variant-numeric: tabular-nums; }
-.prow { display: flex; align-items: center; gap: 8px; padding: 5px 0; border-bottom: 1px solid var(--line); }
+.prow { display: flex; align-items: center; gap: 8px; padding: 3px 0; border-bottom: 1px solid var(--line); }
 .prow:last-child { border-bottom: 0; }
 .prow .n { flex: 1; min-width: 0; font-weight: 500; }
 .prow input { width: 88px; font: inherit; font-size: 16px; font-weight: 800; text-align: right; border: 1.5px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--fg); padding: 6px 8px; font-variant-numeric: tabular-nums; }
 .prow input:focus-visible { outline: 2px solid var(--red); outline-offset: 1px; }
 .prow > em { font-style: normal; font-size: 11px; font-weight: 700; color: var(--muted); width: 34px; flex: none; }
+.client .prow > em { width: 44px; }
+.client .prow .n .rc { display: block; margin: 1px 0 0; }
+.cpwarn { margin: 10px 0 0; padding: 8px 10px; border-radius: 10px; background: var(--warn-bg); border: 1px solid var(--warn-line); font-size: 13px; font-weight: 600; line-height: 1.4; }
+.cpwarn:empty { display: none; }
 .prow .pv { font-weight: 800; font-variant-numeric: tabular-nums; }
 .ver { font-style: normal; font-size: 11px; font-weight: 800; color: #4f9d5d; margin-left: 4px; }
-.sub { margin: 14px 0 4px; }
+.sub { margin: 12px 0 4px; }
+.lbl { margin-top: 12px; }
+details.more { margin-top: 10px; border-top: 1px solid var(--line); }
+details.more > summary { list-style: none; cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 10px 0 2px; font-size: 13px; font-weight: 800; color: var(--fg); }
+details.more > summary::-webkit-details-marker { display: none; }
+details.more > summary::after { content: '▾'; color: var(--muted); transition: transform .2s; }
+details.more[open] > summary::after { transform: rotate(180deg); }
+details.more > summary:focus-visible { outline: 2px solid var(--red); outline-offset: 2px; border-radius: 6px; }
+details.more > summary .rc { margin-left: auto; }
+.chainsel { display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: 13px; font-weight: 700; color: var(--muted); }
+.chainsel select { flex: 1; min-width: 0; font: inherit; font-weight: 800; color: var(--fg); background: var(--chip); border: 0; border-radius: 10px; padding: 8px 10px; }
+.chainsel select:focus-visible { outline: 2px solid var(--red); outline-offset: 1px; }
 .hint { font-size: 12px; color: var(--muted); font-weight: 500; line-height: 1.45; margin: 10px 0 0; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 </style>
@@ -126,7 +141,7 @@ input[type=range]:focus-visible { outline: 2px solid var(--fg); outline-offset: 
       <button type="button" data-recipe="biscuit" aria-pressed="true">Бисквит</button>
       <button type="button" data-recipe="medovik" aria-pressed="false">Медовик</button>
     </div>
-    <div class="label" id="formLabel" style="margin-top:16px">Диаметр формы</div>
+    <div class="label lbl" id="formLabel">Диаметр формы</div>
     <div class="top">
       <div class="big" id="size" aria-live="polite">24<small>см</small></div>
       <div class="badge"><b id="mult">×1,44</b><span>рецепт на 20 см</span></div>
@@ -142,9 +157,9 @@ input[type=range]:focus-visible { outline: 2px solid var(--fg); outline-offset: 
       <button type="button" data-shape="square" aria-pressed="false">Квадрат</button>
       <button type="button" data-shape="rect" aria-pressed="false">Прямоугольник</button>
     </div>
-    <div class="label" style="margin-top:16px">Начинка</div>
+    <div class="label lbl">Начинка</div>
     <div class="seg wrap" id="fillSeg" role="group" aria-label="Начинка"></div>
-    <div class="label" style="margin-top:16px">Покрытие и крем</div>
+    <div class="label lbl">Покрытие и крем</div>
     <div class="seg" id="coatSeg" role="group" aria-label="Покрытие"></div>
     <div id="coatColors" hidden>
       <div class="cap2">Цвет крема: <b id="coatName"></b></div>
@@ -162,11 +177,31 @@ input[type=range]:focus-visible { outline: 2px solid var(--fg); outline-offset: 
 
   <section class="card" aria-label="Себестоимость">
     <div id="costTop"></div>
-    <div class="label sub" id="priceHead"></div>
-    <div id="priceList"></div>
+    <details class="more">
+    <summary>Цены и сравнение сетей<span class="rc" id="cheapest"></span></summary>
     <div class="label sub">По сетям</div>
     <div id="costChains"></div>
+    <div class="label sub" id="priceHead"></div>
+    <div id="priceList"></div>
     <p class="hint">Себестоимость считается только по продуктам, без газа, упаковки и работы. Цены в ₽ за кг (яйца — за штуку). Цены обновлены <span id="priceDate">4 ноября 2026</span> с сайтов Пятёрочки, Магнита, Перекрёстка и Ашана (Москва и доставка, обычные цены без карты, медиана по найденным товарам), у региональных магазинов они могут отличаться. Сайт обновляет их сам раз в сутки. «1 товар» значит, что цена взята по одной позиции, её стоит перепроверить. Где цена в сети не нашлась, берётся медиана по другим сетям. Ваши правки сохраняются на этом устройстве.</p>
+    </details>
+  </section>
+
+  <section class="card client" aria-label="Цена для клиента" id="client">
+    <div class="label">Цена для клиента</div>
+    <div class="top"><div class="big" id="cpBig">—</div><div class="badge"><b id="cpKg">—</b><span id="cpKgL">за кг</span></div></div>
+    <div class="chips"><div class="chip" id="cpPortion">—</div><div class="chip" id="cpWeight">—</div></div>
+    <div id="cpRows" style="margin-top:8px"></div>
+    <p class="cpwarn" id="cpWarn"></p>
+    <details class="more" id="cpMore">
+    <summary>Ваши расходы и наценка<span class="rc" id="cpSum"></span></summary>
+    <label class="prow"><span class="n">Работа, часов</span><input type="number" inputmode="decimal" min="0" step="0.5" data-cp="hours" aria-label="Работа, часов"><em>ч</em></label>
+    <label class="prow"><span class="n">Ставка за час</span><input type="number" inputmode="decimal" min="0" step="50" data-cp="rate" aria-label="Ставка за час, рублей"><em>₽/ч</em></label>
+    <label class="prow"><span class="n">Упаковка и декор<em class="rc">коробка, подложка, топпер</em></span><input type="number" inputmode="decimal" min="0" step="50" data-cp="pack" aria-label="Упаковка и декор, рублей"><em>₽</em></label>
+    <label class="prow"><span class="n">Накладные<em class="rc">свет, газ, вода, износ</em></span><input type="number" inputmode="decimal" min="0" step="1" data-cp="over" aria-label="Накладные расходы, процентов от продуктов"><em>% прод.</em></label>
+    <label class="prow"><span class="n">Наценка<em class="rc">ваша прибыль</em></span><input type="number" inputmode="decimal" min="0" step="5" data-cp="markup" aria-label="Наценка, процентов"><em>%</em></label>
+    <p class="hint">Цена считается на весь торт: продукты по выбранной сети + работа + упаковка и декор + накладные, сверху наценка. Итог округлён вверх до 50 ₽. Вес примерный: продукты минус около 10% на выпекание. Ваши значения сохраняются на этом устройстве.</p>
+    </details>
   </section>
   <p class="note" id="note"></p>
 </div>
@@ -682,7 +717,7 @@ function sliderHTML(id, label, min, max, val, unit, step) {
   var p = (val - min) / (max - min) * 100;
   return '<div class="srow"><div class="cap"><span>' + label + '</span><b>' + String(val).replace('.', ',') + unit + '</b></div>' +
     '<input type="range" id="' + id + '" min="' + min + '" max="' + max + '" step="' + (step || 1) + '" value="' + val + '" style="--p:' + p + '%" data-unit="' + unit + '" aria-label="' + label + '">' +
-    '<div class="cap"><span>' + String(min).replace('.', ',') + unit + '</span><span>' + String(max).replace('.', ',') + unit + '</span></div></div>';
+    '</div>';
 }
 
 function buildSliders() {
@@ -723,6 +758,44 @@ function buildCoat() {
   document.querySelectorAll('#swSeg button').forEach(function (b) { b.addEventListener('click', function () { st.coatColor = b.dataset.col; render(false); }); });
 }
 buildCoat();
+// Цена для клиента: продукты + работа + упаковка/декор + накладные, сверху наценка
+var CP_DEF = { hours: 4, rate: 300, pack: 300, over: 10, markup: 30 };
+var cp = {};
+try { cp = JSON.parse(localStorage.getItem('cakeClientPrice') || '{}') || {}; } catch (e) { cp = {}; }
+Object.keys(CP_DEF).forEach(function (k) { if (typeof cp[k] !== 'number' || !(cp[k] >= 0)) cp[k] = CP_DEF[k]; });
+function saveCp() { try { localStorage.setItem('cakeClientPrice', JSON.stringify(cp)); } catch (e) {} }
+document.querySelectorAll('#client input[data-cp]').forEach(function (el) {
+  el.value = String(cp[el.dataset.cp]);
+  el.addEventListener('input', function () {
+    var x = parseFloat(el.value.replace(',', '.'));
+    cp[el.dataset.cp] = x >= 0 ? x : 0;
+    saveCp(); render(false);
+  });
+});
+function kg(g) { return (Math.round(g / 100) / 10).toFixed(1).replace('.', ','); }
+function renderClient(whole, order, grams, c) {
+  var prod = 0;
+  order.forEach(function (n) { prod += itemCost(n, whole[n], st.chain); });
+  var labor = cp.hours * cp.rate, over = prod * cp.over / 100;
+  var base = prod + labor + cp.pack + over, profit = base * cp.markup / 100;
+  var price = Math.ceil((base + profit) / 50) * 50;
+  var weightG = grams * 0.9;
+  var portions = st.portions || Math.max(1, Math.round(c.aS * BASE_AREA / 45));
+  $('cpBig').innerHTML = fmt(price) + '<small>₽</small>';
+  $('cpKg').textContent = weightG > 0 ? money(price / (weightG / 1000)) : '—';
+  $('cpPortion').textContent = money(price / portions) + ' за порцию';
+  $('cpWeight').textContent = '≈ ' + kg(weightG) + ' кг · ' + portions + ' порц.';
+  var rows = [['Продукты', prod], ['Работа · ' + fmt(cp.hours) + ' ч × ' + fmt(cp.rate) + ' ₽', labor], ['Упаковка и декор', cp.pack], ['Накладные · ' + fmt(cp.over) + '%', over], ['Наценка · ' + fmt(cp.markup) + '%', profit]];
+  $('cpRows').innerHTML = rows.map(function (r) {
+    var pct = price > 0 ? Math.round(r[1] / (base + profit) * 100) : 0;
+    return '<div class="row"><span>' + r[0] + '<i class="rc">' + pct + '%</i></span><b>' + money(r[1]) + '</b></div>';
+  }).join('');
+  var free = prod + cp.pack + over;
+  $('cpWarn').textContent = cp.hours * cp.rate > 0
+    ? 'Дешевле ' + money(free) + ' — вы работаете бесплатно: эти деньги уйдут на продукты, упаковку и накладные.'
+    : '';
+  $('cpSum').textContent = fmt(cp.hours) + ' ч · ' + fmt(cp.rate) + ' ₽/ч · +' + fmt(cp.markup) + '%';
+}
 var priceKey = '';
 function renderCost(used, order, c) {
   var total = 0;
@@ -732,13 +805,11 @@ function renderCost(used, order, c) {
   var h = '<div class="label">Себестоимость</div><div class="top"><div class="big">' + fmt(Math.round(total)) + '<small>₽</small></div>' +
     '<div class="badge"><b>' + money(total / portions) + '</b><span>за порцию</span></div></div>' +
     '<div class="pstep"><span>Порций</span><button type="button" data-p="-1" aria-label="Меньше порций">−</button><b>' + portions + '</b><button type="button" data-p="1" aria-label="Больше порций">+</button></div>' +
-    '<div class="label" style="margin-top:14px">Цены какой сети считать</div><div class="seg wrap" role="group" aria-label="Сеть">' +
-    '<button type="button" data-chain="min" aria-pressed="' + (st.chain === 'min') + '">Лучшая цена</button>' +
-    CHAINS.map(function (x) { return '<button type="button" data-chain="' + x[0] + '" aria-pressed="' + (st.chain === x[0]) + '">' + x[1] + '</button>'; }).join('') + '</div>';
+    '<label class="chainsel">Цены<select id="chainSel" aria-label="Цены какой сети считать">' +
+    '<option value="min"' + (st.chain === 'min' ? ' selected' : '') + '>Лучшая цена по всем сетям</option>' +
+    CHAINS.map(function (x) { return '<option value="' + x[0] + '"' + (st.chain === x[0] ? ' selected' : '') + '>' + x[1] + '</option>'; }).join('') + '</select></label>';
   $('costTop').innerHTML = h;
-  document.querySelectorAll('#costTop button[data-chain]').forEach(function (b) {
-    b.addEventListener('click', function () { st.chain = b.dataset.chain; render(false); });
-  });
+  $('chainSel').addEventListener('change', function () { st.chain = this.value; render(false); });
   document.querySelectorAll('#costTop button[data-p]').forEach(function (b) {
     b.addEventListener('click', function () { st.portions = Math.max(1, portions + (+b.dataset.p)); render(false); });
   });
@@ -783,6 +854,9 @@ function renderCost(used, order, c) {
   rows.forEach(function (r) { if (r.cov > maxCov) maxCov = r.cov; });
   var minT = Infinity, withData = 0;
   rows.forEach(function (r) { if (r.cov === maxCov && maxCov > 0) { withData++; if (r.t < minT) minT = r.t; } });
+  var best = null;
+  rows.forEach(function (r) { if (withData > 1 && r.cov === maxCov && r.t === minT) best = r; });
+  $('cheapest').textContent = best ? 'дешевле: ' + best.name : '';
   $('costChains').innerHTML = rows.map(function (r) {
     return '<div class="row"><span>' + r.name + '<i class="rc">' + (r.cov ? 'своих цен: ' + r.cov + ' из ' + order.length : 'цен нет') + '</i></span><b>' +
       (r.cov ? money(r.t) + (withData > 1 && r.cov === maxCov && r.t === minT ? ' ★' : '') : '—') + '</b></div>';
@@ -811,7 +885,7 @@ function render(rebuild) {
   document.querySelectorAll('#swSeg button').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.col === st.coatColor)); });
   $('coatColors').hidden = st.coat === 'none'; $('coatName').textContent = coatColor()[1].toLowerCase();
 
-  var total = 0, html = '', used = {}, usedOrder = [];
+  var total = 0, html = '', used = {}, usedOrder = [], wholeUsed = {}, wholeG = 0;
   groupsFor().forEach(function (g) {
     html += '<div class="group"><div class="gh"><i style="background:' + g.color + '"></i><b>' + g.name + '</b><span>' + (g.by === 'dough' ? st.n + ' ' + pl(st.n) + (g.sfx || '') : g.tag) + '</span></div>';
     g.items.forEach(function (it) {
@@ -822,6 +896,9 @@ function render(rebuild) {
       else { qty = v; shown = weight(v) + ' г'; total += v; }
       if (!(it[0] in used)) { used[it[0]] = 0; usedOrder.push(it[0]); }
       used[it[0]] += qty;
+      var vw = it[1] * c.aS * gf; // на весь торт, без деления на два замеса
+      wholeUsed[it[0]] = (wholeUsed[it[0]] || 0) + (it[2] === 'шт' ? Math.round(vw) : vw);
+      wholeG += it[2] === 'шт' ? vw * EGG_G : vw;
       html += '<div class="row"><span>' + it[0] + '<i class="rc">≈ ' + money(itemCost(it[0], qty, st.chain)) + '</i></span><b>' + shown + '</b></div>';
     });
     html += '</div>';
@@ -829,6 +906,7 @@ function render(rebuild) {
   html += '<div class="total"><span>Всего продуктов</span><b>' + fmt(Math.round(total)) + ' г</b></div>';
   $('list').innerHTML = html;
   renderCost(used, usedOrder, c);
+  renderClient(wholeUsed, usedOrder, wholeG, c);
   if (rebuild) { buildSliders(); buildFill(); render(false); }
 }
 
