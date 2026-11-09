@@ -111,6 +111,29 @@ input[type=range]:focus-visible { outline: 2px solid var(--fg); outline-offset: 
 .client .prow .n .rc { display: block; margin: 1px 0 0; }
 .cpwarn { margin: 10px 0 0; padding: 8px 10px; border-radius: 10px; background: var(--warn-bg); border: 1px solid var(--warn-line); font-size: 13px; font-weight: 600; line-height: 1.4; }
 .cpwarn:empty { display: none; }
+.acts { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+.acts .toggle { margin: 0; text-decoration: none; display: inline-block; }
+.toggle.solid { background: var(--fg); color: var(--bg); }
+.share { margin-top: 10px; padding: 10px; border-radius: 14px; background: var(--chip); }
+.share .cap2 { margin-top: 0; }
+.shgrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 8px; }
+.sh { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px 2px; border-radius: 10px; font: inherit; font-size: 11px; font-weight: 700; color: var(--fg); text-decoration: none; background: transparent; border: 0; cursor: pointer; }
+.sh:hover, .sh:focus-visible { background: var(--card); outline: none; }
+.sh i { width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; color: #fff; font-style: normal; font-size: 16px; font-weight: 800; }
+.own-row { display: grid; grid-template-columns: 1fr 70px 64px 26px; gap: 6px; align-items: center; padding: 3px 0; border-bottom: 1px solid var(--line); }
+.own-row input { min-width: 0; font: inherit; font-size: 15px; border: 1.5px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--fg); padding: 5px 7px; }
+.own-row input[type=number] { text-align: right; font-weight: 800; }
+.own-row b { text-align: right; font-weight: 800; font-variant-numeric: tabular-nums; }
+.own-row button { font: inherit; border: 0; background: transparent; color: var(--muted); font-size: 18px; cursor: pointer; padding: 0; }
+.toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: var(--fg); color: var(--bg); padding: 10px 16px; border-radius: 999px; font-weight: 800; font-size: 13px; z-index: 9; opacity: 0; transition: opacity .2s; pointer-events: none; }
+.toast.on { opacity: 1; }
+body.smeta .wrap > section:not(#smetaCard):not([aria-label="Форма"]), body.smeta .warn, body.smeta .note { display: none !important; }
+body.smeta [aria-label="Форма"] > *:not(.viz) { display: none !important; }
+body.smeta .banner { order: 0; } body.smeta [aria-label="Форма"] { order: 1; } body.smeta #smetaCard { order: 2; }
+body.smeta .v3hint span { display: none; }
+.guests .pstep { flex-wrap: wrap; }
+.guests select { font: inherit; font-weight: 800; color: var(--fg); background: var(--chip); border: 0; border-radius: 8px; padding: 5px 6px; }
+.guests .pstep .toggle { width: auto; height: auto; border-radius: 999px; padding: 7px 14px; border: 1.5px solid var(--fg); }
 .prow .pv { font-weight: 800; font-variant-numeric: tabular-nums; }
 .ver { font-style: normal; font-size: 11px; font-weight: 800; color: #4f9d5d; margin-left: 4px; }
 .sub { margin: 12px 0 4px; }
@@ -132,8 +155,16 @@ details.more > summary .rc { margin-left: auto; }
 <div class="wrap">
   <header class="banner">
     <h1>Калькулятор торта</h1>
-    <p>Пересчёт рецепта с формы 20 см на любую другую</p>
+    <p id="bannerSub">Пересчёт рецепта с формы 20 см на любую другую</p>
   </header>
+
+  <section class="card" id="smetaCard" aria-label="Смета" hidden>
+    <div class="label">Стоимость</div>
+    <div class="top"><div class="big" id="smPrice">—</div><div class="badge"><b id="smKg">—</b><span>за кг</span></div></div>
+    <div id="smRows" style="margin-top:8px"></div>
+    <p class="hint">Цена указана кондитером на дату расчёта. Вес примерный.</p>
+    <div class="acts"><a class="toggle" id="smOwn" href="./">Посчитать свой торт</a></div>
+  </section>
 
   <section class="card" aria-label="Форма">
     <div class="label">Рецепт</div>
@@ -157,10 +188,25 @@ details.more > summary .rc { margin-left: auto; }
       <button type="button" data-shape="square" aria-pressed="false">Квадрат</button>
       <button type="button" data-shape="rect" aria-pressed="false">Прямоугольник</button>
     </div>
+    <div class="label lbl">Гости</div>
+    <div class="guests">
+      <div class="pstep" style="margin-top:6px"><button type="button" data-g="-1" aria-label="Меньше гостей">−</button><b id="gN">12</b><button type="button" data-g="1" aria-label="Больше гостей">+</button>
+        <span>гостей ×</span><select id="gPortion" aria-label="Порция на гостя"><option value="100">100 г</option><option value="150">150 г</option><option value="200">200 г</option></select>
+        <button type="button" class="toggle" id="gFit" style="margin:0 0 0 auto">Подобрать</button></div>
+      <p class="hint" id="gInfo" style="margin-top:6px"></p>
+    </div>
     <div class="label lbl">Начинка</div>
     <div class="seg wrap" id="fillSeg" role="group" aria-label="Начинка"></div>
     <div class="label lbl">Покрытие и крем</div>
-    <div class="seg" id="coatSeg" role="group" aria-label="Покрытие"></div>
+    <div class="seg two" id="coatSeg" role="group" aria-label="Покрытие"></div>
+    <div class="seg two" id="dripSeg" role="group" aria-label="Подтёки ганашем" style="margin-top:8px">
+      <button type="button" data-drip="0" aria-pressed="true">Без подтёков</button>
+      <button type="button" data-drip="1" aria-pressed="false">Подтёки ганашем</button>
+    </div>
+    <div id="ganBox" hidden>
+      <div class="cap2">Шоколад для ганаша</div>
+      <div class="seg" id="chocSeg" role="group" aria-label="Шоколад для ганаша"></div>
+    </div>
     <div id="coatColors" hidden>
       <div class="cap2">Цвет крема: <b id="coatName"></b></div>
       <div class="sw" id="swSeg" role="group" aria-label="Цвет покрытия"></div>
@@ -177,6 +223,7 @@ details.more > summary .rc { margin-left: auto; }
 
   <section class="card" aria-label="Себестоимость">
     <div id="costTop"></div>
+    <div class="acts"><button type="button" class="toggle" id="shopBtn">Список покупок</button></div>
     <details class="more">
     <summary>Цены и сравнение сетей<span class="rc" id="cheapest"></span></summary>
     <div class="label sub">По сетям</div>
@@ -193,6 +240,21 @@ details.more > summary .rc { margin-left: auto; }
     <div class="chips"><div class="chip" id="cpPortion">—</div><div class="chip" id="cpWeight">—</div></div>
     <div id="cpRows" style="margin-top:8px"></div>
     <p class="cpwarn" id="cpWarn"></p>
+    <div class="acts"><button type="button" class="toggle solid" id="shareBtn" aria-expanded="false" aria-controls="shareMenu">Отправить смету клиенту</button></div>
+    <div class="share" id="shareMenu" hidden>
+      <div class="cap2">Куда отправить смету</div>
+      <div class="shgrid">
+        <a class="sh" data-to="tg" target="_blank" rel="noopener"><i style="background:#2aabee">✈</i>Telegram</a>
+        <a class="sh" data-to="wa" target="_blank" rel="noopener"><i style="background:#25d366">✆</i>WhatsApp</a>
+        <a class="sh" data-to="vk" target="_blank" rel="noopener"><i style="background:#0077ff">VK</i>ВКонтакте</a>
+        <a class="sh" data-to="viber" rel="noopener"><i style="background:#7360f2">✆</i>Viber</a>
+        <a class="sh" data-to="sms"><i style="background:#34c759">✉</i>SMS</a>
+        <a class="sh" data-to="mail"><i style="background:#8a7468">@</i>Почта</a>
+        <button type="button" class="sh" data-to="copy"><i style="background:var(--fg)">⧉</i>Скопировать</button>
+        <button type="button" class="sh" data-to="more" id="shMore" hidden><i style="background:var(--red)">…</i>Другое</button>
+      </div>
+      <p class="hint" style="margin-top:6px">Для MAX и других мессенджеров нажмите «Скопировать» и вставьте ссылку в чат.</p>
+    </div>
     <details class="more" id="cpMore">
     <summary>Ваши расходы и наценка<span class="rc" id="cpSum"></span></summary>
     <label class="prow"><span class="n">Работа, часов</span><input type="number" inputmode="decimal" min="0" step="0.5" data-cp="hours" aria-label="Работа, часов"><em>ч</em></label>
@@ -200,7 +262,17 @@ details.more > summary .rc { margin-left: auto; }
     <label class="prow"><span class="n">Упаковка и декор<em class="rc">коробка, подложка, топпер</em></span><input type="number" inputmode="decimal" min="0" step="50" data-cp="pack" aria-label="Упаковка и декор, рублей"><em>₽</em></label>
     <label class="prow"><span class="n">Накладные<em class="rc">свет, газ, вода, износ</em></span><input type="number" inputmode="decimal" min="0" step="1" data-cp="over" aria-label="Накладные расходы, процентов от продуктов"><em>% прод.</em></label>
     <label class="prow"><span class="n">Наценка<em class="rc">ваша прибыль</em></span><input type="number" inputmode="decimal" min="0" step="5" data-cp="markup" aria-label="Наценка, процентов"><em>%</em></label>
+    <label class="prow"><span class="n">Налог<em class="rc">самозанятые: 4% с физлиц, 6% с компаний</em></span><input type="number" inputmode="decimal" min="0" max="50" step="1" data-cp="tax" aria-label="Налог, процентов от цены"><em>% цены</em></label>
     <p class="hint">Цена считается на весь торт: продукты по выбранной сети + работа + упаковка и декор + накладные, сверху наценка. Итог округлён вверх до 50 ₽. Вес примерный: продукты минус около 10% на выпекание. Ваши значения сохраняются на этом устройстве.</p>
+    </details>
+  </section>
+  <section class="card" aria-label="Свой рецепт" id="own">
+    <details class="more" style="margin-top:0;border-top:0">
+    <summary>Пересчитать свой рецепт<span class="rc" id="ownSum"></span></summary>
+    <label class="prow"><span class="n">Ваш рецепт рассчитан на форму Ø<em class="rc">высота та же</em></span><input type="number" inputmode="decimal" min="8" max="60" step="1" id="ownBase" aria-label="Диаметр формы вашего рецепта, см"><em>см</em></label>
+    <div id="ownRows"></div>
+    <div class="acts" style="justify-content:space-between"><button type="button" class="toggle" id="ownAdd">+ Продукт</button><button type="button" class="toggle" id="ownCopy">Скопировать</button></div>
+    <p class="hint" id="ownInfo"></p>
     </details>
   </section>
   <p class="note" id="note"></p>
@@ -252,15 +324,47 @@ var RECIPES = {
     note: 'Базовый рецепт рассчитан на форму 20 см, шесть коржей по 0,5 см. Высота — толщина одного коржа, чем он толще, тем больше теста. Каждый корж пекут отдельно. Готовому торту нужно 8–12 часов, чтобы пропитаться. Яйца считаются по 50 г.'
   }
 };
-var COATS = [['none', 'Без покрытия'], ['smooth', 'Гладкое'], ['strokes', 'Мазки кремом']];
+var COATS = [['none', 'Без покрытия'], ['smooth', 'Гладкое'], ['strokes', 'Мазки кремом'], ['ganache', 'Ганаш'], ['fondant', 'Мастика']];
+// Шоколад для ганаша: [id, подпись, продукт, цвет, шоколад:сливки для покрытия, для подтёков] (соотношения по весу)
+var CHOCS = [['dark', 'Тёмный', 'Тёмный шоколад', '#4a2a1a', 2, 1], ['milk', 'Молочный', 'Молочный шоколад', '#8a5a3b', 2.5, 2], ['white', 'Белый', 'Белый шоколад', '#f3ead8', 3.5, 3]];
+function choc() { return CHOCS.filter(function (c) { return c[0] === st.choc; })[0] || CHOCS[0]; }
 var COAT_COLORS = [['white', 'Белый', '#f7f3ec'], ['vanilla', 'Ванильный', '#f1e0bd'], ['pink', 'Розовый', '#f2bfcc'], ['peach', 'Персиковый', '#f6c9a8'],
   ['red', 'Красный', '#c8102e'], ['choco', 'Шоколадный', '#6b3e26'], ['caramel', 'Карамельный', '#c98a4b'], ['blue', 'Голубой', '#b9d6ee'],
   ['mint', 'Мятный', '#b7e3cf'], ['lavender', 'Лавандовый', '#d3c3ea'], ['yellow', 'Лимонный', '#f6e38a'], ['black', 'Чёрный', '#2b2422']];
 function coatColor() { return COAT_COLORS.filter(function (c) { return c[0] === st.coatColor; })[0] || COAT_COLORS[0]; }
-function coatHex() { return coatColor()[2]; }
+function coatHex() { return st.coat === 'ganache' ? choc()[3] : coatColor()[2]; }
 // Крем на покрытие рассчитан на торт 20 см базовой высоты; мазкам нужно меньше крема, чем ровному слою
+function shapeAP() {
+  if (st.shape === 'circle') return { A: Math.PI * st.d * st.d / 4, P: Math.PI * st.d };
+  if (st.shape === 'square') return { A: st.a * st.a, P: 4 * st.a };
+  return { A: st.a2 * st.b, P: 2 * (st.a2 + st.b) };
+}
+// Ганаш на подтёки: заливка верха тонким слоем + подтёки по краю; на торт 20 см выходит около 180 г
+// Мастика: раскатанный пласт ≈ 3,5 мм с запасом 2 см на сторону, плотность ≈ 1,4 г/см³ (торт 20×10 см ≈ 750 г)
+function fondantG() {
+  var H = cakeH(st.recipe, st.h, st.n) + 0.5, m = 2, A;
+  if (st.shape === 'circle') { var r = st.d / 2 + H + m; A = Math.PI * r * r; }
+  else if (st.shape === 'square') { var L = st.a + 2 * (H + m); A = L * L; }
+  else A = (st.a2 + 2 * (H + m)) * (st.b + 2 * (H + m));
+  return A * 0.35 * 1.4;
+}
+function dripRatio() { var s = shapeAP(); return (s.P * 1.6 + s.A * 0.25) / (20 * Math.PI * 1.6 + BASE_AREA * 0.25); }
+function ganacheItems(total, ratio) { var ch = choc(); return [[ch[2], total * ratio / (ratio + 1), 'г'], ['Сливки 33%', total / (ratio + 1), 'г']]; }
+function dripGroup() {
+  if (!st.drips) return [];
+  var ch = choc();
+  return [{ name: 'Подтёки', tag: 'ганаш · ' + ch[1].toLowerCase() + ' ' + fmt(ch[5]) + ':1', by: 'drip', color: ch[3], items: ganacheItems(180, ch[5]) }];
+}
 function coatGroup() {
   if (st.coat === 'none') return [];
+  if (st.coat === 'fondant') {
+    var col2 = coatColor();
+    return [{ name: 'Покрытие', tag: 'мастика · ' + col2[1].toLowerCase(), by: 'abs', color: col2[2], items: [['Сахарная мастика', fondantG(), 'г']] }];
+  }
+  if (st.coat === 'ganache') {
+    var ch = choc(); // слой ганаша ≈ 0,45 см: на торт 20 см высотой 10 см около 520 г
+    return [{ name: 'Покрытие', tag: 'ганаш · ' + ch[1].toLowerCase() + ' ' + fmt(ch[4]) + ':1', by: 'surface', color: ch[3], items: ganacheItems(520, ch[4]) }];
+  }
   var k = st.coat === 'smooth' ? 1 : 0.7, col = coatColor();
   return [{ name: 'Покрытие', tag: (st.coat === 'smooth' ? 'гладкое' : 'мазками') + ' · ' + col[1].toLowerCase(), by: 'surface', color: col[2],
     items: [['Сливочный сыр', 300 * k, 'г'], ['Сливочное масло', 100 * k, 'г'], ['Сахарная пудра', 80 * k, 'г']] }];
@@ -268,7 +372,7 @@ function coatGroup() {
 function groupsFor() {
   var R = RECIPES[st.recipe];
   var f = R.fillings.filter(function (x) { return x.id === st.fill; })[0] || R.fillings[0];
-  return R.pre.concat(f.groups, R.post, coatGroup());
+  return R.pre.concat(f.groups, R.post, coatGroup(), dripGroup());
 }
 var EGG_G = 50, BASE_AREA = Math.PI * 100, LIMIT = 1.6;
 var CHAINS = [['pyat', 'Пятёрочка'], ['magnit', 'Магнит'], ['perek', 'Перекрёсток'], ['auchan', 'Ашан']];
@@ -315,6 +419,8 @@ function buildPrices() {
       if (d) { DEFAULTS[c[0]][n] = d; prices[c[0]][n] = d[0]; }
     });
   });
+  // нет цен в магазинах (новые продукты): берём цену тёмного шоколада как ориентир
+  ['Молочный шоколад', 'Белый шоколад'].forEach(function (n) { if (REF[n] === undefined && REF['Тёмный шоколад'] !== undefined) REF[n] = REF['Тёмный шоколад']; });
   if (userStored) CHAINS.forEach(function (c) {
     if (userStored[c[0]]) for (var k in userStored[c[0]]) {
       var x = userStored[c[0]][k];
@@ -350,7 +456,7 @@ function loadRemotePrices() {
     buildPrices(); priceKey = ''; render(false); showPriceDate();
   }).catch(function () {});
 }
-var st = { chain: 'min', portions: null, recipe: 'biscuit', fill: 'berry', h: 10, n: 3, shape: 'circle', d: 24, a: 24, a2: 30, b: 40, twoOn: false, coat: 'none', coatColor: 'white' };
+var st = { chain: 'min', portions: null, recipe: 'biscuit', fill: 'berry', h: 10, n: 3, shape: 'circle', d: 24, a: 24, a2: 30, b: 40, twoOn: false, coat: 'none', coatColor: 'white', choc: 'dark', drips: false, guests: 12, portionG: 150 };
 var $ = function (id) { return document.getElementById(id); };
 
 function pl(n) { var m = n % 10, t = n % 100; return (m === 1 && t !== 11) ? 'корж' : (m >= 2 && m <= 4 && (t < 12 || t > 14)) ? 'коржа' : 'коржей'; }
@@ -367,7 +473,7 @@ function priceFor(n, ch) {
   }
   var o = ownPrice(ch, n); return o !== null ? o : REF[n];
 }
-function itemCost(n, qty, ch) { return priceFor(n, ch) * (n === 'Яйца' ? qty : qty / 1000); }
+function itemCost(n, qty, ch) { var p = priceFor(n, ch); return p > 0 ? p * (n === 'Яйца' ? qty : qty / 1000) : 0; }
 function money(x) { return fmt(Math.round(x)) + ' ₽'; }
 function chainName(id) { return CHAINS.filter(function (c) { return c[0] === id; })[0][1]; }
 
@@ -490,7 +596,8 @@ function v3build() {
   L.forEach(function (l) { H += l[0]; });
   var coat = st.coat || 'none', strokes = coat === 'strokes', coated = coat !== 'none';
   var cc = coated ? v3rgb(coatHex()) : null, ccCut = coated ? v3mix(cc, 1.04) : null;
-  var t = coat === 'smooth' ? 0.5 : 0.45, Ht = coated ? H + t : H;
+  var t = coat === 'strokes' ? 0.45 : 0.5, Ht = coated ? H + t : H;
+  var dc = st.drips ? v3rgb(choc()[3]) : null;
   var top = L[L.length - 1][1];
   function face(p, n, col, tex) { faces.push([p, n, col, tex]); }
   // рельеф мазков: горизонтальные волнистые полосы от лопатки
@@ -547,7 +654,7 @@ function v3build() {
         var tz = function (f, u) { return Ht + (strokes ? 0.35 * t * Math.sin(Math.PI * f) * Math.sin(f * R * 1.6 + u * 2) : 0); };
         var pA = [f0 * e0 * cos(u0), f0 * e0 * sin(u0), tz(f0, u0)], pB = [f1 * e0 * cos(u0), f1 * e0 * sin(u0), tz(f1, u0)];
         var pC = [f1 * e1 * cos(u1), f1 * e1 * sin(u1), tz(f1, u1)], pD = [f0 * e1 * cos(u1), f0 * e1 * sin(u1), tz(f0, u1)];
-        face(q ? [pA, pB, pC, pD] : [pA, pB, pC], [0, 0, 1], coated ? cc : top);
+        face(q ? [pA, pB, pC, pD] : [pA, pB, pC], [0, 0, 1], dc || (coated ? cc : top));
       }
     }
     for (var m = 0; m <= 48; m++) { var tt = m / 48 * Math.PI * 2; foot.push([ext * cos(tt), ext * sin(tt)]); }
@@ -564,7 +671,7 @@ function v3build() {
         face([[-w, d, z0], [-w, -d, z0], [-w, -d, z1], [-w, d, z1]], [-1, 0, 0], l[1]);
         z = z1;
       });
-      face([[-w, -d, H], [w, -d, H], [w, d, H], [-w, d, H]], [0, 0, 1], top);
+      face([[-w, -d, H], [w, -d, H], [w, d, H], [-w, d, H]], [0, 0, 1], dc || top);
     } else {
       // четыре стороны: [начало, направление вдоль, длина, нормаль]
       var sides = [[[-W, -D], [1, 0], 2 * W, [0, -1]], [[W, -D], [0, 1], 2 * D, [1, 0]], [[W, D], [-1, 0], 2 * W, [0, 1]], [[-W, D], [0, -1], 2 * D, [-1, 0]]];
@@ -584,9 +691,44 @@ function v3build() {
         var e = strokes ? 0.35 * t * Math.sin(Math.PI * i / gu) * Math.sin(Math.PI * j / gv) * Math.sin(y * 1.6 + 0.8 * Math.sin(x * 0.5)) : 0;
         return [x, y, Ht + e];
       };
-      for (var i2 = 0; i2 < gu; i2++) for (var j2 = 0; j2 < gv; j2++) face([tp(i2, j2), tp(i2 + 1, j2), tp(i2 + 1, j2 + 1), tp(i2, j2 + 1)], [0, 0, 1], cc);
+      for (var i2 = 0; i2 < gu; i2++) for (var j2 = 0; j2 < gv; j2++) face([tp(i2, j2), tp(i2 + 1, j2), tp(i2 + 1, j2 + 1), tp(i2, j2 + 1)], [0, 0, 1], dc || cc);
     }
     foot = [[-W, -D], [W, -D], [W, D], [-W, D]];
+  }
+  // подтёки ганаша: полоса по верхнему краю и капли разной длины
+  if (dc) {
+    var dh = function (i) { var x = Math.sin(i * 12.9898 + 4.1) * 43758.5453; return x - Math.floor(x); };
+    var band = 0.45, off = 0.12, maxL = Math.min(3.2, Ht * 0.55);
+    if (st.shape === 'circle') {
+      var rd = ext + off, M = 40, b1 = 0.6, b2 = Math.PI * 2 - 0.6;
+      for (var di = 0; di < M; di++) {
+        var g0 = b1 + (b2 - b1) * di / M, g1 = b1 + (b2 - b1) * (di + 1) / M, gm = (g0 + g1) / 2, cg = Math.cos(gm), sg = Math.sin(gm);
+        face([[rd * Math.cos(g0), rd * Math.sin(g0), Ht - band], [rd * Math.cos(g1), rd * Math.sin(g1), Ht - band], [rd * Math.cos(g1), rd * Math.sin(g1), Ht + 0.05], [rd * Math.cos(g0), rd * Math.sin(g0), Ht + 0.05]], [cg, sg, 0], dc);
+        var len = band + (0.3 + 0.7 * dh(di)) * maxL * (dh(di + 50) < 0.25 ? 0.35 : 1);
+        var w0 = g0 + (g1 - g0) * 0.18, w1 = g1 - (g1 - g0) * 0.18, wm = (w0 + w1) / 2;
+        face([[rd * Math.cos(w0), rd * Math.sin(w0), Ht - len + 0.25], [rd * Math.cos(w1), rd * Math.sin(w1), Ht - len + 0.25], [rd * Math.cos(w1), rd * Math.sin(w1), Ht - band + 0.01], [rd * Math.cos(w0), rd * Math.sin(w0), Ht - band + 0.01]], [cg, sg, 0], dc);
+        for (var tq = 0; tq < 6; tq++) { // круглый кончик капли
+          var e0 = Math.PI * tq / 6, e1 = Math.PI * (tq + 1) / 6, h0 = w1 + (w0 - w1) * (1 - Math.cos(e0)) / 2, h1 = w1 + (w0 - w1) * (1 - Math.cos(e1)) / 2;
+          face([[rd * Math.cos(wm), rd * Math.sin(wm), Ht - len + 0.25], [rd * Math.cos(h0), rd * Math.sin(h0), Ht - len + 0.25 - 0.25 * Math.sin(e0)], [rd * Math.cos(h1), rd * Math.sin(h1), Ht - len + 0.25 - 0.25 * Math.sin(e1)]], [cg, sg, 0], dc);
+        }
+      }
+    } else {
+      var EW = W + off, ED = D + off;
+      var sides2 = [[[-EW, -ED], [1, 0], 2 * EW, [0, -1]], [[EW, -ED], [0, 1], 2 * ED, [1, 0]], [[EW, ED], [-1, 0], 2 * EW, [0, 1]], [[-EW, ED], [0, -1], 2 * ED, [-1, 0]]];
+      sides2.forEach(function (sd, si) {
+        var nn = Math.max(4, Math.round(sd[2] / 2.4)), P = function (u, zz) { return [sd[0][0] + sd[1][0] * u, sd[0][1] + sd[1][1] * u, zz]; };
+        face([P(0, Ht - band), P(sd[2], Ht - band), P(sd[2], Ht + 0.05), P(0, Ht + 0.05)], [sd[3][0], sd[3][1], 0], dc);
+        for (var k2 = 0; k2 < nn; k2++) {
+          var u0 = sd[2] * (k2 + 0.18) / nn, u1 = sd[2] * (k2 + 0.82) / nn, um = (u0 + u1) / 2, id = si * 31 + k2;
+          var ln = band + (0.3 + 0.7 * dh(id)) * maxL * (dh(id + 50) < 0.25 ? 0.35 : 1);
+          face([P(u0, Ht - ln + 0.25), P(u1, Ht - ln + 0.25), P(u1, Ht - band + 0.01), P(u0, Ht - band + 0.01)], [sd[3][0], sd[3][1], 0], dc);
+          for (var tq2 = 0; tq2 < 6; tq2++) {
+            var f0 = Math.PI * tq2 / 6, f1 = Math.PI * (tq2 + 1) / 6;
+            face([P(um, Ht - ln + 0.25), P(u1 + (u0 - u1) * (1 - Math.cos(f0)) / 2, Ht - ln + 0.25 - 0.25 * Math.sin(f0)), P(u1 + (u0 - u1) * (1 - Math.cos(f1)) / 2, Ht - ln + 0.25 - 0.25 * Math.sin(f1))], [sd[3][0], sd[3][1], 0], dc);
+          }
+        }
+      });
+    }
   }
   // настоящие нормали граней (нужны для рельефа мазков), направленные наружу
   faces.forEach(function (f) {
@@ -606,7 +748,7 @@ function v3init() {
   if (V3.cv) return;
   var box = $('viz');
   box.innerHTML = '<canvas id="cake3d" tabindex="0" role="img" aria-label="Объёмный торт. Потяните, чтобы повернуть"></canvas>' +
-    '<div class="v3hint">↔ Потяните, чтобы повернуть · <span>пунктир — форма 20 см</span></div>';
+    '<div class="v3hint">↔ Потяните, чтобы повернуть<span> · пунктир — форма 20 см</span></div>';
   V3.cv = $('cake3d'); V3.off = document.createElement('canvas');
   var cv = V3.cv, last = null, lt = 0;
   cv.addEventListener('pointerdown', function (e) { last = [e.clientX, e.clientY]; lt = performance.now(); V3.vy = 0; cv.setPointerCapture(e.pointerId); });
@@ -758,8 +900,55 @@ function buildCoat() {
   document.querySelectorAll('#swSeg button').forEach(function (b) { b.addEventListener('click', function () { st.coatColor = b.dataset.col; render(false); }); });
 }
 buildCoat();
+function buildGanache() {
+  $('chocSeg').innerHTML = CHOCS.map(function (c) { return '<button type="button" data-choc="' + c[0] + '" aria-pressed="' + (c[0] === st.choc) + '">' + c[1] + '</button>'; }).join('');
+  document.querySelectorAll('#chocSeg button').forEach(function (b) { b.addEventListener('click', function () { st.choc = b.dataset.choc; render(false); }); });
+  document.querySelectorAll('#dripSeg button').forEach(function (b) { b.addEventListener('click', function () { st.drips = b.dataset.drip === '1'; render(false); }); });
+}
+buildGanache();
+// Вес торта целиком (продукты минус ~10% на выпекание) — для подбора размера по гостям
+function cakeWeight() {
+  var c = calc(), g = 0;
+  groupsFor().forEach(function (gr) {
+    var gf = gr.by === 'dough' ? c.hf : gr.by === 'layers' ? c.lf : gr.by === 'surface' ? surfRatio() / c.aS : gr.by === 'drip' ? dripRatio() / c.aS : gr.by === 'abs' ? 1 / c.aS : 1;
+    gr.items.forEach(function (it) { var v = it[1] * c.aS * gf; g += it[2] === 'шт' ? v * EGG_G : v; });
+  });
+  return g * 0.9;
+}
+var SIZE_KEY = { circle: ['d', 10, 40], square: ['a', 10, 50], rect: ['b', 10, 60] };
+// Ярусы: подбираем 2–3 круглых яруса той же высоты, каждый следующий меньше минимум на 6 см
+function tierAdvice(need) {
+  var save = { shape: st.shape, d: st.d }, W = {};
+  st.shape = 'circle';
+  for (var d = 10; d <= 40; d++) { st.d = d; W[d] = cakeWeight(); }
+  st.shape = save.shape; st.d = save.d;
+  var best = null;
+  for (var a = 16; a <= 40; a++) for (var b = 10; b <= a - 6; b++) {
+    if (W[a] + W[b] >= need && (!best || W[a] + W[b] < best.w)) best = { t: [a, b], w: W[a] + W[b] };
+  }
+  if (!best) for (var a3 = 22; a3 <= 40; a3++) for (var b3 = 16; b3 <= a3 - 6; b3++) for (var c3 = 10; c3 <= b3 - 6; c3++) {
+    var w3 = W[a3] + W[b3] + W[c3];
+    if (w3 >= need && (!best || w3 < best.w)) best = { t: [a3, b3, c3], w: w3 };
+  }
+  if (!best) return 'Для ' + st.guests + ' гостей не хватит даже трёхъярусного торта: лучше несколько тортов.';
+  return 'Одного торта мало. Нужен ' + (best.t.length === 2 ? 'двух' : 'трёх') + 'ярусный: ' + best.t.map(function (x) { return 'Ø' + x; }).join(' + ') + ' см, вместе ≈ ' + (Math.round(best.w / 100) / 10).toFixed(1).replace('.', ',') + ' кг. Каждый ярус посчитайте отдельно, выбрав его диаметр.';
+}
+function fitGuests() {
+  var need = st.guests * st.portionG, k = SIZE_KEY[st.shape], old = st[k[0]], found = null;
+  for (var v = k[1]; v <= k[2]; v++) { st[k[0]] = v; if (cakeWeight() >= need) { found = v; break; } }
+  st[k[0]] = found !== null ? found : k[2];
+  st.portions = st.guests;
+  st.fitMsg = found === null ? tierAdvice(need) : '';
+  render(true);
+}
+document.querySelectorAll('.guests button[data-g]').forEach(function (b) {
+  b.addEventListener('click', function () { st.guests = Math.max(1, Math.min(200, st.guests + (+b.dataset.g))); st.fitMsg = ''; render(false); });
+});
+$('gPortion').value = String(st.portionG);
+$('gPortion').addEventListener('change', function () { st.portionG = +this.value; st.fitMsg = ''; render(false); });
+$('gFit').addEventListener('click', fitGuests);
 // Цена для клиента: продукты + работа + упаковка/декор + накладные, сверху наценка
-var CP_DEF = { hours: 4, rate: 300, pack: 300, over: 10, markup: 30 };
+var CP_DEF = { hours: 4, rate: 300, pack: 300, over: 10, markup: 30, tax: 0 };
 var cp = {};
 try { cp = JSON.parse(localStorage.getItem('cakeClientPrice') || '{}') || {}; } catch (e) { cp = {}; }
 Object.keys(CP_DEF).forEach(function (k) { if (typeof cp[k] !== 'number' || !(cp[k] >= 0)) cp[k] = CP_DEF[k]; });
@@ -772,30 +961,162 @@ document.querySelectorAll('#client input[data-cp]').forEach(function (el) {
     saveCp(); render(false);
   });
 });
+var lastQuote = null;
 function kg(g) { return (Math.round(g / 100) / 10).toFixed(1).replace('.', ','); }
 function renderClient(whole, order, grams, c) {
   var prod = 0;
   order.forEach(function (n) { prod += itemCost(n, whole[n], st.chain); });
   var labor = cp.hours * cp.rate, over = prod * cp.over / 100;
   var base = prod + labor + cp.pack + over, profit = base * cp.markup / 100;
-  var price = Math.ceil((base + profit) / 50) * 50;
+  var tx = Math.min(cp.tax, 50) / 100, gross = (base + profit) / (1 - tx), taxSum = gross - base - profit;
+  var price = Math.ceil(gross / 50) * 50;
+  lastQuote = { price: price, weightG: grams * 0.9, portions: st.portions || Math.max(1, Math.round(c.aS * BASE_AREA / 45)) };
   var weightG = grams * 0.9;
   var portions = st.portions || Math.max(1, Math.round(c.aS * BASE_AREA / 45));
   $('cpBig').innerHTML = fmt(price) + '<small>₽</small>';
   $('cpKg').textContent = weightG > 0 ? money(price / (weightG / 1000)) : '—';
   $('cpPortion').textContent = money(price / portions) + ' за порцию';
   $('cpWeight').textContent = '≈ ' + kg(weightG) + ' кг · ' + portions + ' порц.';
-  var rows = [['Продукты', prod], ['Работа · ' + fmt(cp.hours) + ' ч × ' + fmt(cp.rate) + ' ₽', labor], ['Упаковка и декор', cp.pack], ['Накладные · ' + fmt(cp.over) + '%', over], ['Наценка · ' + fmt(cp.markup) + '%', profit]];
+  var rows = [['Продукты', prod], ['Работа · ' + fmt(cp.hours) + ' ч × ' + fmt(cp.rate) + ' ₽', labor], ['Упаковка и декор', cp.pack], ['Накладные · ' + fmt(cp.over) + '%', over], ['Наценка · ' + fmt(cp.markup) + '%', profit]].concat(cp.tax > 0 ? [['Налог · ' + fmt(cp.tax) + '%', taxSum]] : []);
   $('cpRows').innerHTML = rows.map(function (r) {
-    var pct = price > 0 ? Math.round(r[1] / (base + profit) * 100) : 0;
+    var pct = price > 0 ? Math.round(r[1] / gross * 100) : 0;
     return '<div class="row"><span>' + r[0] + '<i class="rc">' + pct + '%</i></span><b>' + money(r[1]) + '</b></div>';
   }).join('');
   var free = prod + cp.pack + over;
   $('cpWarn').textContent = cp.hours * cp.rate > 0
     ? 'Дешевле ' + money(free) + ' — вы работаете бесплатно: эти деньги уйдут на продукты, упаковку и накладные.'
     : '';
-  $('cpSum').textContent = fmt(cp.hours) + ' ч · ' + fmt(cp.rate) + ' ₽/ч · +' + fmt(cp.markup) + '%';
+  $('cpSum').textContent = fmt(cp.hours) + ' ч · ' + fmt(cp.rate) + ' ₽/ч · +' + fmt(cp.markup) + '%' + (cp.tax > 0 ? ' · налог ' + fmt(cp.tax) + '%' : '');
 }
+// ---- общие помощники: копирование и всплывающая подсказка ----
+function toast(t) {
+  var el = $('toast'); if (!el) { el = document.createElement('div'); el.id = 'toast'; el.className = 'toast'; el.setAttribute('role', 'status'); document.body.appendChild(el); }
+  el.textContent = t; el.classList.add('on'); clearTimeout(el._t); el._t = setTimeout(function () { el.classList.remove('on'); }, 2200);
+}
+function shareOrCopy(title, text) {
+  if (navigator.share) { navigator.share({ title: title, text: text }).catch(function () {}); return; }
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(function () { toast('Скопировано'); }, function () { prompt('Скопируйте:', text); });
+  else prompt('Скопируйте:', text);
+}
+function gTxt(g) { return g >= 1000 ? (Math.round(g / 10) / 100).toString().replace('.', ',') + ' кг' : Math.round(g) + ' г'; }
+var RNAME = { biscuit: 'Бисквит', medovik: 'Медовик' };
+function fillLabel() { var f = RECIPES[st.recipe].fillings.filter(function (x) { return x.id === st.fill; })[0]; return f ? f.label : ''; }
+function coatLabel() {
+  var c = COATS.filter(function (x) { return x[0] === st.coat; })[0][1];
+  if (st.coat === 'ganache') return 'ганаш, ' + choc()[1].toLowerCase() + ' шоколад';
+  if (st.coat === 'none') return 'без покрытия';
+  return c.toLowerCase() + ', ' + coatColor()[1].toLowerCase();
+}
+
+// ---- список покупок ----
+var lastShop = null;
+function cheapestChain(n) {
+  var best = null, who = '';
+  CHAINS.forEach(function (c) { var v = ownPrice(c[0], n); if (v !== null && (best === null || v < best)) { best = v; who = c[1]; } });
+  return who;
+}
+$('shopBtn').addEventListener('click', function () {
+  if (!lastShop) return;
+  var lines = ['Покупки на торт: ' + RNAME[st.recipe].toLowerCase() + ' ' + sizeText() + ' см, ' + fillLabel().toLowerCase()];
+  var sum = 0;
+  lastShop.order.forEach(function (n) {
+    var q = lastShop.used[n], cost = itemCost(n, q, st.chain); sum += cost;
+    var where = st.chain === 'min' ? cheapestChain(n) : chainName(st.chain);
+    lines.push('• ' + n + ' — ' + (n === 'Яйца' ? q + ' шт' : gTxt(q)) + (cost > 0 ? ' (≈ ' + money(cost) + (where ? ', ' + where : '') + ')' : ''));
+  });
+  lines.push('Итого ≈ ' + money(sum));
+  shareOrCopy('Список покупок', lines.join('\n'));
+});
+
+// ---- смета клиенту ссылкой ----
+function b64e(o) { return btoa(unescape(encodeURIComponent(JSON.stringify(o)))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); }
+function b64d(t) { t = t.replace(/-/g, '+').replace(/_/g, '/'); while (t.length % 4) t += '='; return JSON.parse(decodeURIComponent(escape(atob(t)))); }
+function smetaLink() {
+  if (!lastQuote) return null;
+  var o = { r: st.recipe, f: st.fill, h: st.h, n: st.n, sh: st.shape, d: st.d, a: st.a, a2: st.a2, b: st.b, c: st.coat, cc: st.coatColor, ch: st.choc, dr: st.drips ? 1 : 0,
+    p: lastQuote.price, w: Math.round(lastQuote.weightG), pt: lastQuote.portions, dt: new Date().toISOString().slice(0, 10) };
+  var url = location.origin + location.pathname + '#smeta=' + b64e(o);
+  return { url: url, text: 'Смета на торт: ' + fmt(lastQuote.price) + ' ₽, ≈ ' + kg(lastQuote.weightG) + ' кг. Посмотреть торт:' };
+}
+// Ссылки «поделиться» каждого мессенджера: открывают выбор чата с готовым сообщением
+function fillShare() {
+  var L = smetaLink(); if (!L) return;
+  var u = encodeURIComponent(L.url), t = encodeURIComponent(L.text), full = encodeURIComponent(L.text + ' ' + L.url);
+  var H = { tg: 'https://t.me/share/url?url=' + u + '&text=' + t, wa: 'https://wa.me/?text=' + full, vk: 'https://vk.com/share.php?url=' + u + '&title=' + t,
+    viber: 'viber://forward?text=' + full, sms: 'sms:?&body=' + full, mail: 'mailto:?subject=' + encodeURIComponent('Смета на торт') + '&body=' + full };
+  document.querySelectorAll('#shareMenu a.sh').forEach(function (a) { a.href = H[a.dataset.to]; });
+}
+$('shMore').hidden = !navigator.share;
+$('shareBtn').addEventListener('click', function () {
+  var m = $('shareMenu'), open = m.hidden;
+  if (open) fillShare();
+  m.hidden = !open; this.setAttribute('aria-expanded', String(open));
+});
+document.querySelector('#shareMenu [data-to="copy"]').addEventListener('click', function () {
+  var L = smetaLink(); if (!L) return;
+  var txt = L.text + ' ' + L.url;
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(function () { toast('Ссылка на смету скопирована'); }, function () { prompt('Скопируйте:', txt); });
+  else prompt('Скопируйте:', txt);
+});
+$('shMore').addEventListener('click', function () {
+  var L = smetaLink(); if (L && navigator.share) navigator.share({ title: 'Смета на торт', text: L.text, url: L.url }).catch(function () {});
+});
+function openSmeta() {
+  var m = /#smeta=([\w-]+)/.exec(location.hash); if (!m) return false;
+  var o; try { o = b64d(m[1]); } catch (e) { return false; }
+  if (!RECIPES[o.r]) return false;
+  st.recipe = o.r; st.fill = o.f; st.h = +o.h; st.n = +o.n; st.shape = o.sh; st.d = +o.d; st.a = +o.a; st.a2 = +o.a2; st.b = +o.b;
+  st.coat = o.c || 'none'; st.coatColor = o.cc || 'white'; st.choc = o.ch || 'dark'; st.drips = !!o.dr; st.portions = +o.pt || null;
+  document.body.classList.add('smeta');
+  $('smetaCard').hidden = false;
+  document.querySelector('.banner h1').textContent = 'Смета на торт';
+  $('bannerSub').textContent = 'Расчёт от кондитера' + (o.dt ? ' · ' + o.dt.split('-').reverse().join('.') : '');
+  $('smPrice').innerHTML = fmt(o.p) + '<small>₽</small>';
+  $('smKg').textContent = o.w > 0 ? money(o.p / (o.w / 1000)) : '—';
+  var rows = [['Торт', RNAME[st.recipe]], ['Размер', sizeText() + ' см'], [st.recipe === 'medovik' ? 'Коржей' : 'Высота', st.recipe === 'medovik' ? st.n + ' шт' : fmt(st.h) + ' см, ' + st.n + ' ' + pl(st.n)], ['Начинка', fillLabel()],
+    ['Покрытие', coatLabel()]].concat(st.drips ? [['Подтёки', 'ганаш, ' + choc()[1].toLowerCase() + ' шоколад']] : []).concat([['Вес', '≈ ' + kg(o.w) + ' кг'], ['Порций', String(o.pt)]]);
+  $('smRows').innerHTML = rows.map(function (r) { return '<div class="row"><span>' + r[0] + '</span><b>' + r[1] + '</b></div>'; }).join('');
+  return true;
+}
+
+// ---- свой рецепт ----
+var own = { base: 20, items: [['', ''], ['', ''], ['', '']] };
+try { var ow = JSON.parse(localStorage.getItem('cakeOwnRecipe') || 'null'); if (ow && ow.items) own = ow; } catch (e) {}
+function saveOwn() { try { localStorage.setItem('cakeOwnRecipe', JSON.stringify(own)); } catch (e) {} }
+function ownFactor() { var A = shapeAP().A, b = +own.base || 20; return A / (Math.PI * b * b / 4); }
+function esc(t) { return String(t).replace(/[&<>"]/g, function (ch) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]; }); }
+function buildOwn() {
+  $('ownBase').value = own.base;
+  $('ownRows').innerHTML = own.items.map(function (it, i) {
+    return '<div class="own-row"><input type="text" data-i="' + i + '" data-k="0" placeholder="Продукт" value="' + esc(it[0]) + '" aria-label="Продукт ' + (i + 1) + '">' +
+      '<input type="number" inputmode="decimal" min="0" data-i="' + i + '" data-k="1" placeholder="г" value="' + esc(it[1]) + '" aria-label="Граммов в вашем рецепте, продукт ' + (i + 1) + '">' +
+      '<b data-out="' + i + '">—</b><button type="button" data-del="' + i + '" aria-label="Удалить продукт ' + (i + 1) + '">×</button></div>';
+  }).join('');
+  document.querySelectorAll('#ownRows input').forEach(function (el) {
+    el.addEventListener('input', function () { own.items[+el.dataset.i][+el.dataset.k] = el.value; saveOwn(); updateOwn(); });
+  });
+  document.querySelectorAll('#ownRows button[data-del]').forEach(function (b) {
+    b.addEventListener('click', function () { own.items.splice(+b.dataset.del, 1); if (!own.items.length) own.items.push(['', '']); saveOwn(); buildOwn(); });
+  });
+  updateOwn();
+}
+function updateOwn() {
+  var k = ownFactor();
+  own.items.forEach(function (it, i) {
+    var q = parseFloat(String(it[1]).replace(',', '.')), el = document.querySelector('[data-out="' + i + '"]');
+    if (el) el.textContent = q > 0 ? gTxt(q * k).replace(' г', '') + (q * k >= 1000 ? '' : ' г') : '—';
+  });
+  $('ownSum').textContent = '×' + k.toFixed(2).replace('.', ',') + ' на ' + sizeText() + ' см';
+  $('ownInfo').textContent = 'Впишите продукты и граммы из своего рецепта — справа количество для формы ' + sizeText() + ' см (меняйте размер вверху). Яйца пишите в граммах: одно яйцо без скорлупы ≈ 50 г. Рецепт сохраняется на этом устройстве.';
+}
+$('ownBase').addEventListener('input', function () { var x = parseFloat(this.value); if (x > 0) { own.base = x; saveOwn(); updateOwn(); } });
+$('ownAdd').addEventListener('click', function () { own.items.push(['', '']); saveOwn(); buildOwn(); var ins = document.querySelectorAll('#ownRows input[data-k="0"]'); ins[ins.length - 1].focus(); });
+$('ownCopy').addEventListener('click', function () {
+  var k = ownFactor(), lines = ['Мой рецепт на форму ' + sizeText() + ' см (×' + k.toFixed(2).replace('.', ',') + '):'];
+  own.items.forEach(function (it) { var q = parseFloat(String(it[1]).replace(',', '.')); if (it[0] && q > 0) lines.push('• ' + it[0] + ' — ' + gTxt(q * k)); });
+  shareOrCopy('Мой рецепт', lines.join('\n'));
+});
+buildOwn();
 var priceKey = '';
 function renderCost(used, order, c) {
   var total = 0;
@@ -883,14 +1204,20 @@ function render(rebuild) {
   document.querySelectorAll('#fillSeg button').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.fill === st.fill)); });
   document.querySelectorAll('#coatSeg button').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.coat === st.coat)); });
   document.querySelectorAll('#swSeg button').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.col === st.coatColor)); });
-  $('coatColors').hidden = st.coat === 'none'; $('coatName').textContent = coatColor()[1].toLowerCase();
+  $('coatColors').hidden = st.coat === 'none' || st.coat === 'ganache'; $('coatName').textContent = coatColor()[1].toLowerCase();
+  $('ganBox').hidden = !(st.coat === 'ganache' || st.drips);
+  document.querySelectorAll('#chocSeg button').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.choc === st.choc)); });
+  document.querySelectorAll('#dripSeg button').forEach(function (b) { b.setAttribute('aria-pressed', String((b.dataset.drip === '1') === !!st.drips)); });
+  var wNow = cakeWeight(), feeds = Math.floor(wNow / st.portionG);
+  $('gN').textContent = st.guests;
+  $('gInfo').textContent = st.fitMsg || ('Этот торт ≈ ' + (Math.round(wNow / 100) / 10).toFixed(1).replace('.', ',') + ' кг — хватит на ' + feeds + ' ' + (feeds % 10 === 1 && feeds % 100 !== 11 ? 'гостя' : 'гостей') + ' по ' + st.portionG + ' г' + (feeds >= st.guests ? '.' : '. Для ' + st.guests + ' гостей нажмите «Подобрать».'));
 
   var total = 0, html = '', used = {}, usedOrder = [], wholeUsed = {}, wholeG = 0;
   groupsFor().forEach(function (g) {
     html += '<div class="group"><div class="gh"><i style="background:' + g.color + '"></i><b>' + g.name + '</b><span>' + (g.by === 'dough' ? st.n + ' ' + pl(st.n) + (g.sfx || '') : g.tag) + '</span></div>';
     g.items.forEach(function (it) {
-      var gf = g.by === 'dough' ? c.hf : g.by === 'layers' ? c.lf : g.by === 'surface' ? surfRatio() / c.aS : 1;
-      var v = it[1] * c.aS * gf * (c.two && g.by !== 'surface' ? 0.5 : 1), shown;
+      var gf = g.by === 'dough' ? c.hf : g.by === 'layers' ? c.lf : g.by === 'surface' ? surfRatio() / c.aS : g.by === 'drip' ? dripRatio() / c.aS : g.by === 'abs' ? 1 / c.aS : 1;
+      var v = it[1] * c.aS * gf * (c.two && g.by !== 'surface' && g.by !== 'drip' && g.by !== 'abs' ? 0.5 : 1), shown;
       var qty;
       if (it[2] === 'шт') { qty = Math.round(v); shown = qty + ' шт'; total += v * EGG_G; }
       else { qty = v; shown = weight(v) + ' г'; total += v; }
@@ -899,7 +1226,7 @@ function render(rebuild) {
       var vw = it[1] * c.aS * gf; // на весь торт, без деления на два замеса
       wholeUsed[it[0]] = (wholeUsed[it[0]] || 0) + (it[2] === 'шт' ? Math.round(vw) : vw);
       wholeG += it[2] === 'шт' ? vw * EGG_G : vw;
-      html += '<div class="row"><span>' + it[0] + '<i class="rc">≈ ' + money(itemCost(it[0], qty, st.chain)) + '</i></span><b>' + shown + '</b></div>';
+      html += '<div class="row"><span>' + it[0] + '<i class="rc">' + (priceFor(it[0], st.chain) > 0 ? '≈ ' + money(itemCost(it[0], qty, st.chain)) : 'нет цены') + '</i></span><b>' + shown + '</b></div>';
     });
     html += '</div>';
   });
@@ -907,6 +1234,9 @@ function render(rebuild) {
   $('list').innerHTML = html;
   renderCost(used, usedOrder, c);
   renderClient(wholeUsed, usedOrder, wholeG, c);
+  lastShop = { used: wholeUsed, order: usedOrder };
+  if (!$('shareMenu').hidden) fillShare();
+  if (typeof updateOwn === 'function' && $('ownRows').children.length) updateOwn();
   if (rebuild) { buildSliders(); buildFill(); render(false); }
 }
 
@@ -917,6 +1247,7 @@ document.querySelectorAll('.seg button[data-recipe]').forEach(function (b) {
   b.addEventListener('click', function () { st.recipe = b.dataset.recipe; st.h = RECIPES[st.recipe].h; st.n = RECIPES[st.recipe].n; st.fill = RECIPES[st.recipe].fillings[0].id; render(true); });
 });
 $('toggle').addEventListener('click', function () { st.twoOn = !st.twoOn; render(false); });
+openSmeta();
 render(true);
 showPriceDate();
 loadRemotePrices();
