@@ -37,7 +37,7 @@ namespace TettaProAnalogs
         Label resultCaption, resultValue, resultNote;
         Button copyButton;
         DataGridView grid;
-        Label statusLabel;
+        Label statusLabel, gridCaption;
 
         public MainForm()
         {
@@ -134,7 +134,7 @@ namespace TettaProAnalogs
             var gap2 = new Panel { Dock = DockStyle.Top, Height = 14, BackColor = PageBack };
 
             // --- Таблица ---
-            var gridCaption = new Label { Text = "Таблица соответствия", Dock = DockStyle.Top, Height = 26, ForeColor = TextMuted, Font = new Font(Font.FontFamily, 9f, FontStyle.Bold) };
+            gridCaption = new Label { Text = "Таблица соответствия", Dock = DockStyle.Top, Height = 26, ForeColor = TextMuted, Font = new Font(Font.FontFamily, 9f, FontStyle.Bold) };
 
             grid = new DataGridView
             {
@@ -383,8 +383,15 @@ namespace TettaProAnalogs
             SetResult(0, "АНАЛОГ TETTAPRO", "—", "Введите артикул и нажмите «Поиск»", false);
         }
 
+        void SetTableVisible(bool visible)
+        {
+            grid.Visible = visible;
+            gridCaption.Visible = visible;
+        }
+
         void FillGrid(IEnumerable<AnalogPair> pairs)
         {
+            SetTableVisible(true);
             grid.Rows.Clear();
             foreach (var p in pairs) grid.Rows.Add(p.Brand, p.Competitor, p.TettaPro);
             grid.ClearSelection();
@@ -398,9 +405,10 @@ namespace TettaProAnalogs
             var r = table.Search(q, SelectedBrand);
             if (r.Matches.Count == 0)
             {
-                FillGrid(table.Pairs.Where(p => SelectedBrand == null || p.Brand == SelectedBrand));
+                grid.Rows.Clear();
+                SetTableVisible(false);
                 SetResult(2, "НЕ НАЙДЕНО", "Аналог для «" + q + "» не найден",
-                    "Проверьте артикул или выберите другой бренд. Ниже — полный список позиций.", false);
+                    "Проверьте артикул или выберите другой бренд.", false);
                 return;
             }
 
