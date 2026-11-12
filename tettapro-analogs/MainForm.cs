@@ -12,7 +12,7 @@ namespace TettaProAnalogs
     public sealed class MainForm : Form
     {
         // Фирменные цвета — меняются в одном месте.
-        static readonly Color HeaderBack = Color.FromArgb(24, 28, 34);
+        static readonly Color HeaderBack = Color.FromArgb(14, 16, 20);
         static readonly Color Accent = Color.FromArgb(232, 78, 27);
         static readonly Color AccentHover = Color.FromArgb(205, 62, 15);
         static readonly Color PageBack = Color.FromArgb(244, 245, 247);
@@ -61,10 +61,11 @@ namespace TettaProAnalogs
         void LoadCustomLogo()
         {
             var path = Path.Combine(AppDir, "logo.png");
-            if (!File.Exists(path)) return;
             try
             {
-                using (var fs = File.OpenRead(path))
+                // logo.png рядом с программой заменяет встроенный логотип.
+                using (var fs = File.Exists(path) ? (Stream)File.OpenRead(path)
+                                                  : Assembly.GetExecutingAssembly().GetManifestResourceStream("logo.png"))
                 using (var img = Image.FromStream(fs))
                     customLogo = new Bitmap(img);
             }
@@ -75,7 +76,7 @@ namespace TettaProAnalogs
 
         void BuildUi()
         {
-            header = new Panel { Dock = DockStyle.Top, Height = 76, BackColor = HeaderBack };
+            header = new Panel { Dock = DockStyle.Top, Height = 100, BackColor = HeaderBack };
             header.Paint += PaintHeader;
             header.Resize += (s, e) => header.Invalidate();
 
@@ -218,10 +219,10 @@ namespace TettaProAnalogs
 
             if (customLogo != null)
             {
-                int h = header.Height - 28;
+                int h = header.Height - 36;
                 int w = (int)(customLogo.Width * (h / (double)customLogo.Height));
                 g.InterpolationMode = InterpolationMode.HighQualityBicubic;
-                g.DrawImage(customLogo, new Rectangle(x, 14, w, h));
+                g.DrawImage(customLogo, new Rectangle(x, 18, w, h));
                 x += w;
             }
             else

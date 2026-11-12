@@ -21,6 +21,7 @@
     <Reference Include="System.Drawing" />
     <Reference Include="System.Xml.Linq" />
     <EmbeddedResource Include="analogs.xlsx" LogicalName="analogs.xlsx" />
+    <EmbeddedResource Include="logo.png" LogicalName="logo.png" />
   </ItemGroup>
 
 </Project>
