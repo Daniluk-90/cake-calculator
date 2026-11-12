@@ -408,7 +408,7 @@ namespace TettaProAnalogs
                 grid.Rows.Clear();
                 SetTableVisible(false);
                 SetResult(2, "НЕ НАЙДЕНО", "Аналог для «" + q + "» не найден",
-                    "Проверьте артикул или выберите другой бренд.", false);
+                    "Проверьте артикул или напишите нам на почту sales@mechatronics.ru для уточнения замены.", false);
                 return;
             }
 
