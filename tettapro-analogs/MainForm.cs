@@ -556,8 +556,8 @@ namespace TettaProAnalogs
                     bool same = analogs.Count == 1 && found.Count == r.Matches.Count;
                     SetResult(1, "АНАЛОГ TETTAPRO ДЛЯ " + src.Competitor.ToUpperInvariant(),
                         string.Join("  /  ", analogs),
-                        same ? "Артикул есть у брендов: " + string.Join(", ", brands) + ". Результат подбора по каждому — в таблице ниже."
-                             : "Аналог зависит от бренда (" + string.Join(", ", brands) + ") — выберите бренд или смотрите таблицу ниже.",
+                        same ? "Артикул есть у брендов: " + string.Join(", ", brands) + ". Нажмите на строку таблицы, чтобы увидеть условия замены."
+                             : "Аналог зависит от бренда (" + string.Join(", ", brands) + ") — выберите бренд или нажмите на строку таблицы.",
                         same);
                 }
                 else
