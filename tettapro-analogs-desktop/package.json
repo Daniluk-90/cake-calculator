@@ -1,0 +1,42 @@
+{
+  "name": "tettapro-analogs",
+  "productName": "TETTAPRO Аналоги",
+  "version": "2.0.0",
+  "description": "Подбор аналогов блоков питания TETTAPRO (Windows и macOS)",
+  "author": "TETTAPRO",
+  "main": "main.js",
+  "private": true,
+  "scripts": {
+    "prepare-app": "node scripts/prepare-app.mjs",
+    "start": "npm run prepare-app && electron .",
+    "dist:win": "npm run prepare-app && electron-builder --win portable nsis --x64",
+    "dist:mac": "npm run prepare-app && electron-builder --mac dmg zip --universal"
+  },
+  "devDependencies": {
+    "electron": "44.9.3",
+    "electron-builder": "26.18.0"
+  },
+  "build": {
+    "appId": "pro.tetta.analogs",
+    "productName": "TETTAPRO Аналоги",
+    "artifactName": "TETTAPRO-Analogs-${version}-${os}-${arch}.${ext}",
+    "files": ["main.js", "app/**/*"],
+    "directories": { "output": "dist", "buildResources": "build" },
+    "win": { "icon": "build/icon.ico" },
+    "portable": { "artifactName": "TETTAPRO-Analogs-${version}-windows-portable.exe" },
+    "nsis": {
+      "artifactName": "TETTAPRO-Analogs-${version}-windows-setup.exe",
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "shortcutName": "TETTAPRO Аналоги"
+    },
+    "mac": {
+      "icon": "build/icon-mac.png",
+      "category": "public.app-category.business",
+      "identity": "-",
+      "hardenedRuntime": false,
+      "gatekeeperAssess": false
+    },
+    "dmg": { "artifactName": "TETTAPRO-Analogs-${version}-mac.dmg" }
+  }
+}

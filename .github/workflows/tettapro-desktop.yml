@@ -1,0 +1,69 @@
+# Сборка программы «TETTAPRO Аналоги» для Windows и macOS и публикация в GitHub Releases.
+name: TETTAPRO desktop
+
+on:
+  push:
+    paths:
+      - "tettapro-analogs-web/public/**"
+      - "tettapro-analogs-desktop/**"
+      - ".github/workflows/tettapro-desktop.yml"
+  workflow_dispatch:
+
+env:
+  # Адрес сайта с общей таблицей. Можно переопределить переменной репозитория TETTA_API_BASE.
+  TETTA_API_BASE: ${{ vars.TETTA_API_BASE || 'https://tettapro-analogs.netlify.app' }}
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            script: dist:win
+          - os: macos-latest
+            script: dist:mac
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: tettapro-analogs-desktop
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npm run ${{ matrix.script }} -- --publish never
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tettapro-analogs-${{ matrix.os }}
+          path: |
+            tettapro-analogs-desktop/dist/*.exe
+            tettapro-analogs-desktop/dist/*.dmg
+            tettapro-analogs-desktop/dist/*-mac-*.zip
+          if-no-files-found: error
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: files
+          merge-multiple: true
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: analogs-v2.0.${{ github.run_number }}
+          name: TETTAPRO Аналоги 2.0.${{ github.run_number }}
+          target_commitish: ${{ github.sha }}
+          make_latest: true
+          body: |
+            Программа подбора аналогов блоков питания TETTAPRO.
+            Windows: TETTAPRO-Analogs-…-windows-setup.exe (установка) или …-windows-portable.exe (без установки).
+            macOS: TETTAPRO-Analogs-…-mac.dmg (Intel и Apple Silicon). При первом запуске: правый клик по программе → «Открыть».
+            Таблица общая с сайтом: ${{ env.TETTA_API_BASE }}
+          files: files/*

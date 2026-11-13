@@ -40,3 +40,6 @@ dotnet build -c Release
 ## Оформление
 Цвета, логотип и шрифт Manrope (лицензия SIL OFL) взяты с сайта ps.tetta.pro.
 Значок программы — символ θ из логотипа.
+
+> Эта версия (только Windows, .NET Framework) заменена программой для Windows и macOS
+> в `tettapro-analogs-desktop` и сайтом `tettapro-analogs-web` с общей таблицей.

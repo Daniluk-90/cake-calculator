@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Подбор аналогов TETTAPRO</title>
+  <meta name="description" content="Подбор аналогов промышленных блоков питания TETTAPRO по артикулу Mean Well, PROMPOWER, ДКС, EKF, ОВЕН, Omron, Phoenix Contact и других брендов.">
+  <meta name="theme-color" content="#0b1523">
+  <link rel="icon" href="img/favicon.png">
+  <link rel="apple-touch-icon" href="img/icon-192.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="top">
+    <div class="top__inner">
+      <a class="logo" href="https://ps.tetta.pro/" target="_blank" rel="noopener"><img src="img/logo-dark.svg" alt="TETTAPRO"></a>
+      <span class="top__title">Подбор аналогов блоков питания</span>
+      <a class="btn btn--outline" id="contact" href="mailto:sales@mechatronics.ru?subject=%D0%9F%D0%BE%D0%B4%D0%B1%D0%BE%D1%80%20%D0%B0%D0%BD%D0%B0%D0%BB%D0%BE%D0%B3%D0%B0%20%D0%B1%D0%BB%D0%BE%D0%BA%D0%B0%20%D0%BF%D0%B8%D1%82%D0%B0%D0%BD%D0%B8%D1%8F">Написать нам</a>
+    </div>
+  </header>
+
+  <main class="page">
+    <section class="card search">
+      <p class="kicker">Блоки питания на DIN-рейку</p>
+      <h1>Подбор <span class="accent">аналога TETTAPRO</span></h1>
+      <p class="muted">Вставьте артикул блока питания другого производителя — бренд определится автоматически</p>
+      <form id="form" class="search__row" autocomplete="off">
+        <label class="field field--brand">
+          <span class="field__label">Бренд <span id="brandHint" class="hint"></span></span>
+          <select id="brand"><option value="">Все бренды</option></select>
+        </label>
+        <label class="field field--article">
+          <span class="field__label">Артикул</span>
+          <input id="article" list="articles" placeholder="Например: MDR-20-24" spellcheck="false" autofocus>
+          <datalist id="articles"></datalist>
+        </label>
+        <button class="btn btn--primary" type="submit">Поиск</button>
+      </form>
+    </section>
+
+    <section id="result" class="card result" hidden>
+      <div class="result__text">
+        <p id="resCaption" class="result__caption"></p>
+        <p id="resValue" class="result__value"></p>
+        <p id="resNote" class="result__note"></p>
+        <p id="resDetails" class="result__details" hidden></p>
+      </div>
+      <button id="copy" class="btn btn--ghost" type="button" hidden>Копировать</button>
+    </section>
+
+    <section id="tableBlock" hidden>
+      <p class="kicker">Таблица соответствия</p>
+      <div class="table-wrap">
+        <table id="table">
+          <thead><tr><th>Бренд</th><th>Артикул конкурента</th><th>Аналог TETTAPRO</th><th>Результат подбора</th><th>Отличия и условия замены</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <footer class="status">
+    <span id="status">Загрузка таблицы…</span>
+    <span class="status__links">
+      <button type="button" class="link" id="uploadOpen">Загрузить таблицу…</button>
+      <button type="button" class="link" id="download">Скачать таблицу</button>
+      <button type="button" class="link" id="serverOpen" hidden>Сервер…</button>
+      <a class="link" href="https://tetta.pro" target="_blank" rel="noopener">tetta.pro</a>
+    </span>
+  </footer>
+
+  <dialog id="uploadDialog" class="dialog">
+    <form method="dialog" id="uploadForm">
+      <h2>Загрузить таблицу</h2>
+      <p class="muted">Файл Excel со столбцами «Бренд», «Модель / артикул», «Кандидат TETTAPRO», «Результат подбора», «Отличия и условия замены». Новая таблица сразу заменит текущую на сайте и во всех программах.</p>
+      <label class="field"><span class="field__label">Файл .xlsx</span><input type="file" id="uploadFile" accept=".xlsx,.xls"></label>
+      <p id="uploadInfo" class="muted small"></p>
+      <label class="field"><span class="field__label">Пароль администратора</span><input type="password" id="uploadPassword" autocomplete="current-password"></label>
+      <label class="check"><input type="checkbox" id="uploadRemember"> Запомнить пароль на этом устройстве</label>
+      <p id="uploadError" class="error" hidden></p>
+      <div class="dialog__actions">
+        <button type="button" class="btn btn--ghost" id="uploadCancel">Отмена</button>
+        <button type="button" class="btn btn--primary" id="uploadSend" disabled>Загрузить</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="serverDialog" class="dialog">
+    <form method="dialog">
+      <h2>Сервер таблицы</h2>
+      <p class="muted">Адрес сайта подбора, с которого программа берёт таблицу.</p>
+      <label class="field"><span class="field__label">Адрес</span><input id="serverUrl" placeholder="https://…"></label>
+      <div class="dialog__actions">
+        <button type="button" class="btn btn--ghost" id="serverCancel">Отмена</button>
+        <button type="button" class="btn btn--primary" id="serverSave">Сохранить</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div id="toast" class="toast" hidden></div>
+
+  <script src="config.js"></script>
+  <script src="default-table.js"></script>
+  <script src="search.js"></script>
+  <script src="vendor/xlsx.full.min.js" defer></script>
+  <script src="app.js"></script>
+</body>
+</html>

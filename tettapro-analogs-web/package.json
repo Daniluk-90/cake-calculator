@@ -1,0 +1,9 @@
+{
+  "name": "tettapro-analogs-web",
+  "private": true,
+  "type": "module",
+  "description": "Сайт подбора аналогов блоков питания TETTAPRO и общий API таблицы",
+  "dependencies": {
+    "@netlify/blobs": "^10.0.0"
+  }
+}

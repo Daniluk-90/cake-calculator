@@ -1,0 +1,14 @@
+# TETTAPRO Аналоги — программа для Windows и macOS
+
+Оболочка Electron вокруг интерфейса сайта (`../tettapro-analogs-web/public`).
+Таблица берётся с сайта (`TETTA_API_BASE`, по умолчанию `https://tettapro-analogs.netlify.app`) и общая для всех.
+
+Сборка выполняется автоматически в GitHub Actions (`.github/workflows/tettapro-desktop.yml`)
+при изменениях; готовые файлы публикуются в GitHub Releases:
+- Windows: `…-windows-setup.exe` (установщик) и `…-windows-portable.exe` (без установки);
+- macOS: `…-mac.dmg` (универсальная: Intel и Apple Silicon).
+
+Программы не подписаны сертификатами разработчика. Windows может показать «Windows защитила ваш компьютер» →
+«Подробнее» → «Выполнить в любом случае». На Mac при первом запуске: правый клик по программе → «Открыть».
+
+Локально: `npm install && npm start` (нужен доступ к загрузке Electron).
