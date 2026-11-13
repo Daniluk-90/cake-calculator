@@ -13,7 +13,37 @@ namespace TettaProAnalogs
     {
         public string Brand { get; set; }        // бренд конкурента, например «Mean Well»
         public string Competitor { get; set; }   // артикул конкурента, например «MDR-20-24»
-        public string TettaPro { get; set; }     // аналог TETTAPRO, например «MTPR-M02024»
+        public string TettaPro { get; set; }     // аналог TETTAPRO, например «MTPR-M02024», или «Нет»
+        public string Result { get; set; }       // колонка «Результат подбора»
+
+        /// <summary>В таблице прямо указано, что аналога нет («Нет»).</summary>
+        public bool NoAnalog { get { return AnalogTable.IsNoAnalog(TettaPro); } }
+
+        /// <summary>
+        /// Нормализованные варианты артикула конкурента: целиком и по частям.
+        /// «MDR-20-24 / SQ0752-0008» находится и по «MDR-20-24», и по «SQ0752-0008»;
+        /// «IP-502 52052DEK (ИП502-1Н24)» — по «52052DEK» и «ИП502-1Н24».
+        /// </summary>
+        public List<string> Keys
+        {
+            get
+            {
+                if (keys != null) return keys;
+                keys = new List<string> { AnalogTable.Normalize(Competitor) };
+                foreach (var part in Competitor.Split(new[] { '/', '(', ')', ',', ';' }, StringSplitOptions.RemoveEmptyEntries))
+                {
+                    var t = part.Trim();
+                    keys.Add(AnalogTable.Normalize(t));
+                    // последнее «слово» с цифрами: «IP-502 52052DEK» → «52052DEK», «OptiPower MDR-60-24-1» → «MDR-60-24-1»
+                    var words = t.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                    if (words.Length > 1 && words[words.Length - 1].Any(char.IsDigit))
+                        keys.Add(AnalogTable.Normalize(words[words.Length - 1]));
+                }
+                keys = keys.Where(k => k.Length >= 3).Distinct().ToList();
+                return keys;
+            }
+        }
+        private List<string> keys;
     }
 
     /// <summary>
@@ -23,6 +53,13 @@ namespace TettaProAnalogs
     public sealed class AnalogTable
     {
         public const string TettaHeader = "TETTAPRO";
+        public const string ResultHeader = "РЕЗУЛЬТАТПОДБОРА";
+
+        public static bool IsNoAnalog(string tetta)
+        {
+            var n = Normalize(tetta);
+            return n == "НЕТ" || n == "NO" || n == "NONE" || n.Length == 0;
+        }
 
         public List<AnalogPair> Pairs { get; private set; }
         public List<string> Brands { get; private set; }
@@ -61,10 +98,14 @@ namespace TettaProAnalogs
                 throw new InvalidDataException("В таблице не найдена колонка с заголовком «TettaPRO».");
 
             var brandCols = new Dictionary<int, string>();
+            int resultCol = -1;
             var header = rows[headerRow];
             for (int c = 0; c < header.Count; c++)
-                if (c != tettaCol && !string.IsNullOrWhiteSpace(header[c]))
-                    brandCols[c] = PrettyBrand(header[c]);
+            {
+                if (c == tettaCol || string.IsNullOrWhiteSpace(header[c])) continue;
+                if (Normalize(header[c]) == ResultHeader) { resultCol = c; continue; }
+                brandCols[c] = PrettyBrand(header[c]);
+            }
 
             if (brandCols.Count == 0)
                 throw new InvalidDataException("В таблице нет ни одной колонки с брендом конкурента.");
@@ -75,13 +116,14 @@ namespace TettaProAnalogs
                 var row = rows[r];
                 string tetta = Cell(row, tettaCol);
                 if (tetta.Length == 0) continue;
+                string info = resultCol >= 0 ? Cell(row, resultCol) : "";
                 foreach (var kv in brandCols)
                 {
                     string comp = Cell(row, kv.Key);
                     if (comp.Length == 0) continue;
                     string key = kv.Value + "|" + Normalize(comp) + "|" + Normalize(tetta);
                     if (!seen.Add(key)) continue;
-                    table.Pairs.Add(new AnalogPair { Brand = kv.Value, Competitor = comp, TettaPro = tetta });
+                    table.Pairs.Add(new AnalogPair { Brand = kv.Value, Competitor = comp, TettaPro = tetta, Result = info });
                 }
             }
 
@@ -110,7 +152,7 @@ namespace TettaProAnalogs
                 pool = pool.Where(p => p.Brand == brand);
             var list = pool.ToList();
 
-            var exact = list.Where(p => Normalize(p.Competitor) == q).ToList();
+            var exact = list.Where(p => p.Keys.Contains(q)).ToList();
             if (exact.Count > 0) { result.Matches = exact; result.Exact = true; return result; }
 
             var exactReverse = list.Where(p => Normalize(p.TettaPro) == q).ToList();

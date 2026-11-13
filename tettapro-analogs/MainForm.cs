@@ -25,6 +25,7 @@ namespace TettaProAnalogs
 
         const string AllBrands = "Все бренды";
         const string SiteUrl = "https://tetta.pro";
+        const string Email = "sales@mechatronics.ru";
 
         AnalogTable table;
         Image customLogo;
@@ -99,7 +100,7 @@ namespace TettaProAnalogs
             var subtitle = new Label { Text = "Введите артикул блока питания другого производителя — программа покажет аналог TETTAPRO", AutoSize = true, Location = new Point(21, 40), ForeColor = TextMuted, Font = new Font(Font.FontFamily, 9f) };
 
             var brandLabel = new Label { Text = "Бренд", AutoSize = true, Location = new Point(20, 68), ForeColor = TextMuted, Font = new Font(Font.FontFamily, 8.5f) };
-            brandBox = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Location = new Point(20, 86), Width = 180, Font = new Font(Font.FontFamily, 11f), FlatStyle = FlatStyle.Flat };
+            brandBox = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Location = new Point(20, 86), Width = 180, Font = new Font(Font.FontFamily, 11f), FlatStyle = FlatStyle.Flat, MaxDropDownItems = 16, DropDownWidth = 220 };
 
             var articleLabel = new Label { Text = "Артикул", AutoSize = true, Location = new Point(216, 68), ForeColor = TextMuted, Font = new Font(Font.FontFamily, 8.5f) };
             articleBox = new TextBox { Location = new Point(216, 86), Width = 380, Font = new Font(Font.FontFamily, 11f), BorderStyle = BorderStyle.FixedSingle, Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right };
@@ -121,7 +122,7 @@ namespace TettaProAnalogs
             var gap1 = new Panel { Dock = DockStyle.Top, Height = 14, BackColor = PageBack };
 
             // --- Карточка результата ---
-            resultCard = new Panel { Dock = DockStyle.Top, Height = 104, BackColor = Color.White, Padding = new Padding(20, 12, 20, 12) };
+            resultCard = new Panel { Dock = DockStyle.Top, Height = 118, BackColor = Color.White, Padding = new Padding(20, 12, 20, 12) };
             resultCard.Paint += PaintResultCard;
             resultCaption = new Label { Text = "АНАЛОГ TETTAPRO", AutoSize = true, Location = new Point(24, 14), ForeColor = TextMuted, Font = new Font(Font.FontFamily, 8.5f, FontStyle.Bold) };
             resultValue = new Label { Text = "—", AutoSize = true, Location = new Point(20, 34), ForeColor = TextMain, Font = new Font(Font.FontFamily, 22f, FontStyle.Bold) };
@@ -130,7 +131,7 @@ namespace TettaProAnalogs
             copyButton.FlatAppearance.BorderColor = CardBorder;
             copyButton.Click += (s, e) => CopyResult();
             resultCard.Controls.AddRange(new Control[] { resultCaption, resultValue, resultNote, copyButton });
-            resultCard.Resize += (s, e) => { copyButton.Location = new Point(resultCard.ClientSize.Width - 20 - copyButton.Width, 36); };
+            resultCard.Resize += (s, e) => { copyButton.Location = new Point(resultCard.ClientSize.Width - 20 - copyButton.Width, 36); resultNote.MaximumSize = new Size(resultCard.ClientSize.Width - 48, 0); };
 
             var gap2 = new Panel { Dock = DockStyle.Top, Height = 14, BackColor = PageBack };
 
@@ -169,16 +170,19 @@ namespace TettaProAnalogs
             grid.Columns.Add("brand", "Бренд");
             grid.Columns.Add("competitor", "Артикул конкурента");
             grid.Columns.Add("tetta", "Аналог TETTAPRO");
-            grid.Columns["brand"].FillWeight = 25;
-            grid.Columns["competitor"].FillWeight = 38;
-            grid.Columns["tetta"].FillWeight = 37;
+            grid.Columns.Add("result", "Результат подбора");
+            grid.Columns["brand"].FillWeight = 20;
+            grid.Columns["competitor"].FillWeight = 30;
+            grid.Columns["tetta"].FillWeight = 20;
+            grid.Columns["result"].FillWeight = 30;
+            grid.Columns["result"].DefaultCellStyle.ForeColor = TextMuted;
             grid.Columns["tetta"].DefaultCellStyle.Font = new Font(Font.FontFamily, 10f, FontStyle.Bold);
             grid.Columns["tetta"].DefaultCellStyle.ForeColor = Accent;
             grid.CellDoubleClick += (s, e) =>
             {
                 if (e.RowIndex < 0) return;
                 var v = grid.Rows[e.RowIndex].Cells["tetta"].Value as string;
-                if (!string.IsNullOrEmpty(v)) { SafeCopy(v); statusLabel.Text = "Скопировано: " + v; }
+                if (!string.IsNullOrEmpty(v) && v.StartsWith("MTPR", StringComparison.OrdinalIgnoreCase)) { SafeCopy(v); statusLabel.Text = "Скопировано: " + v; }
             };
             var menu = new ContextMenuStrip();
             menu.Items.Add("Копировать аналог TETTAPRO", null, (s, e) => CopyGridCell("tetta"));
@@ -348,8 +352,8 @@ namespace TettaProAnalogs
 
         void UpdateStatus()
         {
-            statusLabel.Text = string.Format("База: {0} позиций ({1}) · источник: {2}",
-                table.Pairs.Count, string.Join(", ", table.Brands), table.Source);
+            statusLabel.Text = string.Format("База: {0} позиций, брендов: {1} · источник: {2}",
+                table.Pairs.Count, table.Brands.Count, table.Source);
         }
 
         void ChooseTable()
@@ -394,7 +398,15 @@ namespace TettaProAnalogs
         {
             SetTableVisible(true);
             grid.Rows.Clear();
-            foreach (var p in pairs) grid.Rows.Add(p.Brand, p.Competitor, p.TettaPro);
+            foreach (var p in pairs)
+            {
+                int i = grid.Rows.Add(p.Brand, p.Competitor, p.NoAnalog ? "Нет аналога" : p.TettaPro, p.Result ?? "");
+                if (p.NoAnalog)
+                {
+                    grid.Rows[i].Cells["tetta"].Style.ForeColor = TextMuted;
+                    grid.Rows[i].Cells["tetta"].Style.Font = new Font(Font.FontFamily, 9.5f, FontStyle.Italic);
+                }
+            }
             grid.ClearSelection();
         }
 
@@ -409,7 +421,20 @@ namespace TettaProAnalogs
                 grid.Rows.Clear();
                 SetTableVisible(false);
                 SetResult(2, "НЕ НАЙДЕНО", "Аналог для «" + q + "» не найден",
-                    "Проверьте артикул или напишите нам на почту sales@mechatronics.ru для уточнения замены.", false);
+                    "Проверьте артикул или напишите нам на почту " + Email + " для уточнения замены.", false);
+                return;
+            }
+
+            if (r.Matches.All(m => m.NoAnalog) && (r.Exact || r.Matches.Count == 1))
+            {
+                // Позиция есть в базе, но аналога TETTAPRO для неё нет.
+                var m0 = r.Matches[0];
+                var info = JoinResults(r.Matches);
+                grid.Rows.Clear();
+                SetTableVisible(false);
+                SetResult(2, "АНАЛОГ TETTAPRO ДЛЯ " + m0.Brand.ToUpperInvariant() + " " + m0.Competitor,
+                    "Аналога TETTAPRO нет" + (info.Length > 0 ? " — " + info.ToLowerInvariant() : ""),
+                    "Напишите нам на почту " + Email + " для уточнения замены.", false);
                 return;
             }
 
@@ -417,35 +442,61 @@ namespace TettaProAnalogs
 
             if (r.Exact && !r.Reverse)
             {
-                var analogs = r.Matches.Select(m => m.TettaPro).Distinct().ToList();
+                var found = r.Matches.Where(m => !m.NoAnalog).ToList();
+                var analogs = found.Select(m => m.TettaPro).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+                var brands = r.Matches.Select(m => m.Brand).Distinct().ToList();
                 var src = r.Matches[0];
-                SetResult(1, "АНАЛОГ TETTAPRO ДЛЯ " + src.Brand.ToUpperInvariant() + " " + src.Competitor,
-                    string.Join("  /  ", analogs),
-                    analogs.Count > 1 ? "Подходит любой из вариантов" : "Нажмите «Копировать», чтобы вставить артикул в заказ",
-                    true);
+
+                if (brands.Count > 1)
+                {
+                    bool same = analogs.Count == 1 && found.Count == r.Matches.Count;
+                    SetResult(1, "АНАЛОГ TETTAPRO ДЛЯ " + src.Competitor.ToUpperInvariant(),
+                        string.Join("  /  ", analogs),
+                        same ? "Артикул есть у брендов: " + string.Join(", ", brands) + ". Результат подбора по каждому — в таблице ниже."
+                             : "Аналог зависит от бренда (" + string.Join(", ", brands) + ") — выберите бренд или смотрите таблицу ниже.",
+                        same);
+                }
+                else
+                {
+                    var info = JoinResults(found);
+                    string note = info.Length > 0 ? "Результат подбора: " + info
+                                                  : "Нажмите «Копировать», чтобы вставить артикул в заказ";
+                    if (analogs.Count > 1 && info.Length == 0) note = "Подходит любой из вариантов";
+                    SetResult(1, "АНАЛОГ TETTAPRO ДЛЯ " + src.Brand.ToUpperInvariant() + " " + src.Competitor,
+                        string.Join("  /  ", analogs), note, true);
+                }
             }
             else if (r.Exact && r.Reverse)
             {
                 var comps = r.Matches.Select(m => m.Competitor).Distinct().ToList();
                 SetResult(1, "АРТИКУЛ TETTAPRO " + r.Matches[0].TettaPro + " ЗАМЕНЯЕТ",
-                    string.Join("  /  ", comps),
-                    "Это артикул TETTAPRO — показаны модели, которые он заменяет", false);
+                    comps.Count <= 3 ? string.Join("  /  ", comps) : "Моделей: " + comps.Count,
+                    "Это артикул TETTAPRO — модели, которые он заменяет, показаны в таблице ниже", false);
             }
             else
             {
-                SetResult(r.Matches.Count == 1 ? 1 : 0,
+                var one = r.Matches.Count == 1 ? r.Matches[0] : null;
+                var oneInfo = one != null && !string.IsNullOrEmpty(one.Result) ? " · " + one.Result : "";
+                SetResult(one != null ? 1 : 0,
                     "ПОХОЖИЕ АРТИКУЛЫ",
-                    r.Matches.Count == 1 ? r.Matches[0].TettaPro : "Найдено вариантов: " + r.Matches.Count,
-                    r.Matches.Count == 1 ? "Ближайшее совпадение: " + r.Matches[0].Brand + " " + r.Matches[0].Competitor
-                                         : "Точного совпадения нет — выберите нужную строку в таблице ниже",
-                    r.Matches.Count == 1);
+                    one != null ? one.TettaPro : "Найдено вариантов: " + r.Matches.Count,
+                    one != null ? "Ближайшее совпадение: " + one.Brand + " " + one.Competitor + oneInfo
+                                : "Точного совпадения нет — выберите нужную строку в таблице ниже",
+                    one != null);
             }
+        }
+
+        static string JoinResults(IEnumerable<AnalogPair> pairs)
+        {
+            return string.Join("; ", pairs.Select(p => (p.Result ?? "").Trim()).Where(x => x.Length > 0)
+                                          .Distinct(StringComparer.OrdinalIgnoreCase));
         }
 
         void CopyResult()
         {
             var r = table.Search(articleBox.Text.Trim(), SelectedBrand);
-            var text = r.Matches.Count > 0 ? string.Join(", ", r.Matches.Select(m => m.TettaPro).Distinct()) : resultValue.Text;
+            var found = r.Matches.Where(m => !m.NoAnalog).ToList();
+            var text = found.Count > 0 ? string.Join(", ", found.Select(m => m.TettaPro).Distinct()) : resultValue.Text;
             SafeCopy(text);
             copyButton.Text = "Скопировано ✓";
             var t = new Timer { Interval = 1500 };
