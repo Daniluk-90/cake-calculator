@@ -6,9 +6,9 @@
   const CACHE_KEY = "tettapro.table";
   const SERVER_KEY = "tettapro.server";
   const PASS_KEY = "tettapro.password";
-  const REFRESH_MS = 5 * 60 * 1000;
+  const REFRESH_MS = 30 * 1000;
   const cfg = window.TETTA_CONFIG || {};
-  const isDesktop = !!cfg.desktop || location.protocol === "file:";
+  const isDesktop = !!cfg.desktop || location.protocol === "file:" || new URLSearchParams(location.search).has("desktop");
 
   const $ = (id) => document.getElementById(id);
   const els = {
@@ -30,7 +30,7 @@
 
   function apiUrl() {
     const base = (store.get(SERVER_KEY) || cfg.apiBase || "").replace(/\/+$/, "");
-    if (!base && isDesktop) return null;
+    if (!base && location.protocol === "file:") return null;   // открыт как файл и сервер не указан
     return base + "/api/table";
   }
 
@@ -381,10 +381,19 @@
   $("uploadCancel").addEventListener("click", () => $("uploadDialog").close());
   $("download").addEventListener("click", download);
 
+  if (isDesktop && location.protocol.startsWith("http")) {
+    // Программа сама запускает сайт на этом компьютере — его можно открыть в браузере.
+    const a = $("siteOpen");
+    a.href = location.origin + "/";
+    a.textContent = "Открыть сайт в браузере (" + location.host + ")";
+    a.hidden = false;
+  }
+
   if (isDesktop) {
     $("serverOpen").hidden = false;
     $("serverOpen").addEventListener("click", () => {
       $("serverUrl").value = store.get(SERVER_KEY) || cfg.apiBase || "";
+      $("serverUrl").placeholder = "пусто — сайт на этом компьютере (" + location.host + ")";
       $("serverDialog").showModal();
     });
     $("serverCancel").addEventListener("click", () => $("serverDialog").close());
@@ -396,7 +405,7 @@
     });
   }
 
-  if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
+  if ("serviceWorker" in navigator && location.protocol.startsWith("http") && !isDesktop) {
     navigator.serviceWorker.register("sw.js").catch(() => {});
   }
 

@@ -6,6 +6,7 @@ on:
     paths:
       - "tettapro-analogs-web/public/**"
       - "tettapro-analogs-desktop/**"
+      - "tettapro-analogs-web/server.cjs"
       - ".github/workflows/tettapro-desktop.yml"
   workflow_dispatch:
 
@@ -57,7 +58,8 @@ jobs:
             Программа подбора аналогов блоков питания TETTAPRO.
             Windows: TETTAPRO-Analogs-…-windows-setup.exe (установка) или …-windows-portable.exe (без установки).
             macOS: TETTAPRO-Analogs-…-mac.dmg (Intel и Apple Silicon). При первом запуске: правый клик по программе → «Открыть».
-            Таблица общая с сайтом: ${{ env.TETTA_API_BASE }}
+            Программа сама запускает сайт на компьютере: http://localhost:8787 («Открыть сайт в браузере» внизу окна).
+            Таблица общая у программы и сайта. Пароль загрузки таблиц в тестовом режиме: tettapro
           files: |
             tettapro-analogs-desktop/dist/*.exe
             tettapro-analogs-desktop/dist/*.dmg

@@ -1,7 +1,9 @@
 # TETTAPRO Аналоги — программа для Windows и macOS
 
 Оболочка Electron вокруг интерфейса сайта (`../tettapro-analogs-web/public`).
-Таблица берётся с сайта (`TETTA_API_BASE`, по умолчанию `https://tettapro-analogs.netlify.app`) и общая для всех.
+При запуске программа поднимает сайт на этом компьютере (http://localhost:8787, сервер `server.cjs`)
+и работает с ним: таблица общая у программы и сайта в браузере. Пароль загрузки в тестовом режиме — `tettapro`
+(можно задать переменной окружения `ADMIN_PASSWORD`). Через «Сервер…» можно переключиться на сайт в интернете.
 
 Сборка выполняется автоматически в GitHub Actions (`.github/workflows/tettapro-desktop.yml`)
 при изменениях; готовые файлы публикуются в GitHub Releases:

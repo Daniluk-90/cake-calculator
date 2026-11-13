@@ -20,10 +20,21 @@
     "appId": "pro.tetta.analogs",
     "productName": "TETTAPRO Аналоги",
     "artifactName": "TETTAPRO-Analogs-${version}-${os}-${arch}.${ext}",
-    "files": ["main.js", "app/**/*"],
-    "directories": { "output": "dist", "buildResources": "build" },
-    "win": { "icon": "build/icon.ico" },
-    "portable": { "artifactName": "TETTAPRO-Analogs-${version}-windows-portable.exe" },
+    "files": [
+      "main.js",
+      "server.cjs",
+      "app/**/*"
+    ],
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "win": {
+      "icon": "build/icon.ico"
+    },
+    "portable": {
+      "artifactName": "TETTAPRO-Analogs-${version}-windows-portable.exe"
+    },
     "nsis": {
       "artifactName": "TETTAPRO-Analogs-${version}-windows-setup.exe",
       "oneClick": false,
@@ -37,6 +48,8 @@
       "hardenedRuntime": false,
       "gatekeeperAssess": false
     },
-    "dmg": { "artifactName": "TETTAPRO-Analogs-${version}-mac.dmg" }
+    "dmg": {
+      "artifactName": "TETTAPRO-Analogs-${version}-mac.dmg"
+    }
   }
 }

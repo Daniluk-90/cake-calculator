@@ -66,6 +66,7 @@
       <button type="button" class="link" id="uploadOpen">Загрузить таблицу…</button>
       <button type="button" class="link" id="download">Скачать таблицу</button>
       <button type="button" class="link" id="serverOpen" hidden>Сервер…</button>
+      <a class="link" id="siteOpen" href="#" target="_blank" rel="noopener" hidden></a>
       <a class="link" href="https://tetta.pro" target="_blank" rel="noopener">tetta.pro</a>
     </span>
   </footer>
@@ -89,7 +90,7 @@
   <dialog id="serverDialog" class="dialog">
     <form method="dialog">
       <h2>Сервер таблицы</h2>
-      <p class="muted">Адрес сайта подбора, с которого программа берёт таблицу.</p>
+      <p class="muted">Адрес сайта, с которым программа делит таблицу. Оставьте пустым, чтобы использовать сайт, запущенный программой на этом компьютере.</p>
       <label class="field"><span class="field__label">Адрес</span><input id="serverUrl" placeholder="https://…"></label>
       <div class="dialog__actions">
         <button type="button" class="btn btn--ghost" id="serverCancel">Отмена</button>
