@@ -22,6 +22,8 @@
     <Reference Include="System.Xml.Linq" />
     <EmbeddedResource Include="analogs.xlsx" LogicalName="analogs.xlsx" />
     <EmbeddedResource Include="logo.png" LogicalName="logo.png" />
+    <EmbeddedResource Include="Manrope-Regular.ttf" LogicalName="Manrope-Regular.ttf" />
+    <EmbeddedResource Include="Manrope-Bold.ttf" LogicalName="Manrope-Bold.ttf" />
   </ItemGroup>
 
 </Project>

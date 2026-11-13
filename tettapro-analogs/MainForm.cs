@@ -12,16 +12,21 @@ namespace TettaProAnalogs
     public sealed class MainForm : Form
     {
         // Фирменные цвета — меняются в одном месте.
-        static readonly Color HeaderBack = Color.FromArgb(14, 16, 20);
-        static readonly Color Accent = Color.FromArgb(232, 78, 27);
-        static readonly Color AccentHover = Color.FromArgb(205, 62, 15);
-        static readonly Color PageBack = Color.FromArgb(244, 245, 247);
-        static readonly Color CardBorder = Color.FromArgb(222, 225, 230);
-        static readonly Color TextMain = Color.FromArgb(28, 31, 36);
-        static readonly Color TextMuted = Color.FromArgb(110, 116, 125);
-        static readonly Color SuccessBack = Color.FromArgb(236, 248, 240);
-        static readonly Color SuccessBorder = Color.FromArgb(46, 160, 90);
-        static readonly Color WarnBack = Color.FromArgb(253, 243, 236);
+        // Палитра сайта ps.tetta.pro.
+        static readonly Color HeaderBack = ColorTranslator.FromHtml("#0b1523");   // --navy
+        static readonly Color HeaderLine = ColorTranslator.FromHtml("#1c2b3d");
+        static readonly Color HeaderText = ColorTranslator.FromHtml("#9cabbc");   // --muted
+        static readonly Color Accent = ColorTranslator.FromHtml("#1589ee");       // --electric
+        static readonly Color AccentHover = ColorTranslator.FromHtml("#0f74cc");
+        static readonly Color AccentLight = ColorTranslator.FromHtml("#54b9ff");  // --blue
+        static readonly Color PageBack = ColorTranslator.FromHtml("#f3f6f8");     // --paper
+        static readonly Color CardBorder = ColorTranslator.FromHtml("#d8e0e6");   // --line
+        static readonly Color TextMain = ColorTranslator.FromHtml("#14283e");     // --ink
+        static readonly Color TextMuted = ColorTranslator.FromHtml("#62758a");
+        static readonly Color SuccessBack = ColorTranslator.FromHtml("#eef6fe");
+        static readonly Color SuccessBorder = Accent;
+        static readonly Color WarnBack = ColorTranslator.FromHtml("#f7f9fb");
+        static readonly Color WarnBorder = ColorTranslator.FromHtml("#9cabbc");
 
         const string AllBrands = "Все бренды";
         const string SiteUrl = "https://tetta.pro";
@@ -38,17 +43,19 @@ namespace TettaProAnalogs
         Label resultCaption, resultValue, resultNote;
         Button copyButton;
         DataGridView grid;
-        Label statusLabel, gridCaption;
+        Label statusLabel, gridCaption, brandHint;
+        Panel gapResult;
+        bool settingBrand;
 
         public MainForm()
         {
             Text = "TETTAPRO — подбор аналогов блоков питания";
-            Font = new Font("Segoe UI", 10f);
+            Font = new Font(BrandFonts.Family, 10f);
             BackColor = PageBack;
             ForeColor = TextMain;
             StartPosition = FormStartPosition.CenterScreen;
-            MinimumSize = new Size(760, 560);
-            Size = new Size(900, 660);
+            MinimumSize = new Size(800, 600);
+            Size = new Size(960, 700);
             AutoScaleMode = AutoScaleMode.Dpi;
             try { Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath); } catch { }
 
@@ -77,7 +84,7 @@ namespace TettaProAnalogs
 
         void BuildUi()
         {
-            header = new Panel { Dock = DockStyle.Top, Height = 100, BackColor = HeaderBack };
+            header = new Panel { Dock = DockStyle.Top, Height = 72, BackColor = HeaderBack };
             header.Paint += PaintHeader;
             header.Resize += (s, e) => header.Invalidate();
 
@@ -90,36 +97,53 @@ namespace TettaProAnalogs
             status.Controls.Add(loadLink);
             status.Controls.Add(siteLink);
 
+            var contact = new Button { Text = "Написать нам", Size = new Size(150, 36), FlatStyle = FlatStyle.Flat, BackColor = HeaderBack, ForeColor = Color.White, Font = new Font(Font.FontFamily, 9.5f, FontStyle.Bold), Cursor = Cursors.Hand, Anchor = AnchorStyles.Top | AnchorStyles.Right };
+            contact.FlatAppearance.BorderColor = Accent;
+            contact.FlatAppearance.BorderSize = 1;
+            contact.FlatAppearance.MouseOverBackColor = ColorTranslator.FromHtml("#10233a");
+            contact.Click += (s, e) => { try { System.Diagnostics.Process.Start("mailto:" + Email + "?subject=" + Uri.EscapeDataString("Подбор аналога блока питания")); } catch { } };
+            header.Controls.Add(contact);
+            header.Resize += (s, e) => contact.Location = new Point(header.ClientSize.Width - 24 - contact.Width, (header.Height - contact.Height) / 2);
+
             var body = new Panel { Dock = DockStyle.Fill, Padding = new Padding(24, 20, 24, 16), BackColor = PageBack };
 
             // --- Карточка поиска ---
-            var searchCard = new Panel { Dock = DockStyle.Top, Height = 132, BackColor = Color.White, Padding = new Padding(20, 14, 20, 14) };
+            var searchCard = new Panel { Dock = DockStyle.Top, Height = 168, BackColor = Color.White, Padding = new Padding(20, 14, 20, 14) };
             searchCard.Paint += PaintCardBorder;
 
-            var title = new Label { Text = "Подбор аналога", Font = new Font(Font.FontFamily, 14f, FontStyle.Bold), AutoSize = true, Location = new Point(20, 12), ForeColor = TextMain };
-            var subtitle = new Label { Text = "Введите артикул блока питания другого производителя — программа покажет аналог TETTAPRO", AutoSize = true, Location = new Point(21, 40), ForeColor = TextMuted, Font = new Font(Font.FontFamily, 9f) };
+            var kicker = new Label { Text = "БЛОКИ ПИТАНИЯ НА DIN-РЕЙКУ", AutoSize = true, Location = new Point(21, 16), ForeColor = Accent, Font = new Font(Font.FontFamily, 8.5f, FontStyle.Bold) };
+            var title = new Label { Text = "Подбор", Font = new Font(Font.FontFamily, 18f, FontStyle.Bold), AutoSize = true, Location = new Point(18, 34), ForeColor = TextMain };
+            var title2 = new Label { Text = "аналога TETTAPRO", Font = new Font(Font.FontFamily, 18f, FontStyle.Bold), AutoSize = true, ForeColor = Accent };
+            var subtitle = new Label { Text = "Вставьте артикул блока питания другого производителя — бренд определится автоматически", AutoSize = true, Location = new Point(21, 72), ForeColor = TextMuted, Font = new Font(Font.FontFamily, 9f) };
 
-            var brandLabel = new Label { Text = "Бренд", AutoSize = true, Location = new Point(20, 68), ForeColor = TextMuted, Font = new Font(Font.FontFamily, 8.5f) };
-            brandBox = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Location = new Point(20, 86), Width = 180, Font = new Font(Font.FontFamily, 11f), FlatStyle = FlatStyle.Flat, MaxDropDownItems = 16, DropDownWidth = 220 };
+            var brandLabel = new Label { Text = "Бренд", AutoSize = true, Location = new Point(20, 102), ForeColor = TextMuted, Font = new Font(Font.FontFamily, 8.5f) };
+            brandHint = new Label { Text = "", AutoSize = true, ForeColor = Accent, Font = new Font(Font.FontFamily, 8.5f) };
+            brandBox = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Location = new Point(20, 120), Width = 200, Font = new Font(Font.FontFamily, 11f), FlatStyle = FlatStyle.Flat, MaxDropDownItems = 16, DropDownWidth = 230 };
 
-            var articleLabel = new Label { Text = "Артикул", AutoSize = true, Location = new Point(216, 68), ForeColor = TextMuted, Font = new Font(Font.FontFamily, 8.5f) };
-            articleBox = new TextBox { Location = new Point(216, 86), Width = 380, Font = new Font(Font.FontFamily, 11f), BorderStyle = BorderStyle.FixedSingle, Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right };
+            var articleLabel = new Label { Text = "Артикул", AutoSize = true, Location = new Point(236, 102), ForeColor = TextMuted, Font = new Font(Font.FontFamily, 8.5f) };
+            articleBox = new TextBox { Location = new Point(236, 120), Width = 380, Font = new Font(Font.FontFamily, 11f), BorderStyle = BorderStyle.FixedSingle, Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right };
             SetCue(articleBox, "Например: MDR-20-24");
+            articleBox.TextChanged += (s, e) => DetectBrand();
             articleBox.KeyDown += (s, e) => { if (e.KeyCode == Keys.Enter) { e.SuppressKeyPress = true; DoSearch(); } };
 
-            searchButton = new Button { Text = "Поиск", Location = new Point(612, 84), Size = new Size(140, 32), FlatStyle = FlatStyle.Flat, BackColor = Accent, ForeColor = Color.White, Font = new Font(Font.FontFamily, 10.5f, FontStyle.Bold), Cursor = Cursors.Hand, Anchor = AnchorStyles.Top | AnchorStyles.Right };
+            searchButton = new Button { Text = "Поиск", Location = new Point(612, 118), Size = new Size(140, 32), FlatStyle = FlatStyle.Flat, BackColor = Accent, ForeColor = Color.White, Font = new Font(Font.FontFamily, 10.5f, FontStyle.Bold), Cursor = Cursors.Hand, Anchor = AnchorStyles.Top | AnchorStyles.Right };
             searchButton.FlatAppearance.BorderSize = 0;
             searchButton.FlatAppearance.MouseOverBackColor = AccentHover;
             searchButton.Click += (s, e) => DoSearch();
 
-            searchCard.Controls.AddRange(new Control[] { title, subtitle, brandLabel, brandBox, articleLabel, articleBox, searchButton });
+            searchCard.Controls.AddRange(new Control[] { kicker, title, title2, subtitle, brandLabel, brandHint, brandBox, articleLabel, articleBox, searchButton });
+            searchCard.Layout += (s, e) =>
+            {
+                title2.Location = new Point(title.Left + title.PreferredWidth + 6, title.Top);
+                brandHint.Location = new Point(brandLabel.Left + brandLabel.PreferredWidth + 2, brandLabel.Top);
+            };
             searchCard.Resize += (s, e) =>
             {
                 searchButton.Left = searchCard.ClientSize.Width - 20 - searchButton.Width;
                 articleBox.Width = searchButton.Left - 16 - articleBox.Left;
             };
 
-            var gap1 = new Panel { Dock = DockStyle.Top, Height = 14, BackColor = PageBack };
+            gapResult = new Panel { Dock = DockStyle.Top, Height = 14, BackColor = PageBack };
 
             // --- Карточка результата ---
             resultCard = new Panel { Dock = DockStyle.Top, Height = 118, BackColor = Color.White, Padding = new Padding(20, 12, 20, 12) };
@@ -127,8 +151,9 @@ namespace TettaProAnalogs
             resultCaption = new Label { Text = "АНАЛОГ TETTAPRO", AutoSize = true, Location = new Point(24, 14), ForeColor = TextMuted, Font = new Font(Font.FontFamily, 8.5f, FontStyle.Bold) };
             resultValue = new Label { Text = "—", AutoSize = true, Location = new Point(20, 34), ForeColor = TextMain, Font = new Font(Font.FontFamily, 22f, FontStyle.Bold) };
             resultNote = new Label { Text = "Введите артикул и нажмите «Поиск»", AutoSize = true, Location = new Point(24, 76), ForeColor = TextMuted, Font = new Font(Font.FontFamily, 9f) };
-            copyButton = new Button { Text = "Копировать", Size = new Size(140, 32), FlatStyle = FlatStyle.Flat, BackColor = Color.White, ForeColor = TextMain, Cursor = Cursors.Hand, Anchor = AnchorStyles.Top | AnchorStyles.Right, Visible = false };
-            copyButton.FlatAppearance.BorderColor = CardBorder;
+            copyButton = new Button { Text = "Копировать", Size = new Size(140, 34), FlatStyle = FlatStyle.Flat, BackColor = Color.White, ForeColor = Accent, Font = new Font(Font.FontFamily, 9.5f, FontStyle.Bold), Cursor = Cursors.Hand, Anchor = AnchorStyles.Top | AnchorStyles.Right, Visible = false };
+            copyButton.FlatAppearance.BorderColor = Accent;
+            copyButton.FlatAppearance.MouseOverBackColor = SuccessBack;
             copyButton.Click += (s, e) => CopyResult();
             resultCard.Controls.AddRange(new Control[] { resultCaption, resultValue, resultNote, copyButton });
             resultCard.Resize += (s, e) => { copyButton.Location = new Point(resultCard.ClientSize.Width - 20 - copyButton.Width, 36); resultNote.MaximumSize = new Size(resultCard.ClientSize.Width - 48, 0); };
@@ -136,7 +161,7 @@ namespace TettaProAnalogs
             var gap2 = new Panel { Dock = DockStyle.Top, Height = 14, BackColor = PageBack };
 
             // --- Таблица ---
-            gridCaption = new Label { Text = "Таблица соответствия", Dock = DockStyle.Top, Height = 26, ForeColor = TextMuted, Font = new Font(Font.FontFamily, 9f, FontStyle.Bold) };
+            gridCaption = new Label { Text = "ТАБЛИЦА СООТВЕТСТВИЯ", Dock = DockStyle.Top, Height = 26, ForeColor = Accent, Font = new Font(Font.FontFamily, 9f, FontStyle.Bold) };
 
             grid = new DataGridView
             {
@@ -150,22 +175,23 @@ namespace TettaProAnalogs
                 MultiSelect = false,
                 AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,
                 BackgroundColor = Color.White,
-                BorderStyle = BorderStyle.FixedSingle,
+                BorderStyle = BorderStyle.None,
                 CellBorderStyle = DataGridViewCellBorderStyle.SingleHorizontal,
-                GridColor = Color.FromArgb(235, 237, 240),
+                GridColor = ColorTranslator.FromHtml("#e6ecf1"),
                 EnableHeadersVisualStyles = false,
                 ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.DisableResizing,
                 ColumnHeadersHeight = 34,
                 ColumnHeadersBorderStyle = DataGridViewHeaderBorderStyle.None,
             };
             grid.RowTemplate.Height = 30;
-            grid.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(248, 249, 250);
-            grid.ColumnHeadersDefaultCellStyle.ForeColor = TextMuted;
+            grid.ColumnHeadersDefaultCellStyle.BackColor = HeaderBack;
+            grid.ColumnHeadersDefaultCellStyle.ForeColor = Color.White;
             grid.ColumnHeadersDefaultCellStyle.Font = new Font(Font.FontFamily, 9f, FontStyle.Bold);
-            grid.ColumnHeadersDefaultCellStyle.SelectionBackColor = Color.FromArgb(248, 249, 250);
+            grid.ColumnHeadersDefaultCellStyle.SelectionBackColor = HeaderBack;
             grid.ColumnHeadersDefaultCellStyle.Padding = new Padding(8, 0, 0, 0);
             grid.DefaultCellStyle.Padding = new Padding(8, 0, 0, 0);
-            grid.DefaultCellStyle.SelectionBackColor = Color.FromArgb(253, 235, 226);
+            grid.DefaultCellStyle.SelectionBackColor = ColorTranslator.FromHtml("#e1f0fd");
+            grid.DefaultCellStyle.ForeColor = TextMain;
             grid.DefaultCellStyle.SelectionForeColor = TextMain;
             grid.Columns.Add("brand", "Бренд");
             grid.Columns.Add("competitor", "Артикул конкурента");
@@ -194,14 +220,19 @@ namespace TettaProAnalogs
             body.Controls.Add(gridCaption);
             body.Controls.Add(gap2);
             body.Controls.Add(resultCard);
-            body.Controls.Add(gap1);
+            body.Controls.Add(gapResult);
             body.Controls.Add(searchCard);
 
             Controls.Add(body);
             Controls.Add(status);
             Controls.Add(header);
 
-            brandBox.SelectedIndexChanged += (s, e) => { if (articleBox.Text.Trim().Length > 0) DoSearch(); else ShowAll(); };
+            brandBox.SelectedIndexChanged += (s, e) =>
+            {
+                if (settingBrand) return;
+                brandHint.Text = "";
+                if (articleBox.Text.Trim().Length > 0) DoSearch();
+            };
             Shown += (s, e) => articleBox.Focus();
         }
 
@@ -223,10 +254,10 @@ namespace TettaProAnalogs
 
             if (customLogo != null)
             {
-                int h = header.Height - 36;
+                int h = 34;
                 int w = (int)(customLogo.Width * (h / (double)customLogo.Height));
                 g.InterpolationMode = InterpolationMode.HighQualityBicubic;
-                g.DrawImage(customLogo, new Rectangle(x, 18, w, h));
+                g.DrawImage(customLogo, new Rectangle(x, (header.Height - h) / 2, w, h));
                 x += w;
             }
             else
@@ -249,12 +280,13 @@ namespace TettaProAnalogs
                 }
             }
 
-            using (var f = new Font(Font.FontFamily, 10.5f))
-            using (var b = new SolidBrush(Color.FromArgb(190, 196, 205)))
+            using (var line = new Pen(HeaderLine)) g.DrawLine(line, 0, header.Height - 1, header.Width, header.Height - 1);
+            using (var f = new Font(Font.FontFamily, 9.5f))
+            using (var b = new SolidBrush(HeaderText))
             {
                 var text = "Подбор аналогов блоков питания";
                 var sz = g.MeasureString(text, f);
-                float tx = header.Width - sz.Width - 24;
+                float tx = header.Width - sz.Width - 24 - 150 - 20;
                 if (tx > x + 24)
                     g.DrawString(text, f, b, tx, (header.Height - sz.Height) / 2f);
             }
@@ -283,7 +315,7 @@ namespace TettaProAnalogs
         void PaintResultCard(object sender, PaintEventArgs e)
         {
             var c = (Control)sender;
-            Color border = resultState == 1 ? SuccessBorder : resultState == 2 ? Accent : CardBorder;
+            Color border = resultState == 1 ? SuccessBorder : resultState == 2 ? WarnBorder : CardBorder;
             using (var pen = new Pen(CardBorder)) e.Graphics.DrawRectangle(pen, 0, 0, c.Width - 1, c.Height - 1);
             using (var b = new SolidBrush(border)) e.Graphics.FillRectangle(b, 0, 0, 5, c.Height);
         }
@@ -296,6 +328,7 @@ namespace TettaProAnalogs
             resultValue.Text = value;
             resultValue.ForeColor = state == 2 ? TextMuted : TextMain;
             resultValue.Font = new Font(Font.FontFamily, state == 2 ? 15f : 22f, FontStyle.Bold);
+            resultCard.Visible = gapResult.Visible = true;
             resultValue.Top = state == 2 ? 38 : 32;
             resultNote.Text = note;
             copyButton.Visible = canCopy;
@@ -346,7 +379,7 @@ namespace TettaProAnalogs
             articleBox.AutoCompleteMode = AutoCompleteMode.SuggestAppend;
             articleBox.AutoCompleteSource = AutoCompleteSource.CustomSource;
 
-            ShowAll();
+            ResetView();
             UpdateStatus();
         }
 
@@ -382,10 +415,33 @@ namespace TettaProAnalogs
             }
         }
 
-        void ShowAll()
+        /// <summary>Начальный вид: только поиск, без результата и таблицы.</summary>
+        void ResetView()
         {
-            FillGrid(table.Pairs.Where(p => SelectedBrand == null || p.Brand == SelectedBrand));
-            SetResult(0, "АНАЛОГ TETTAPRO", "—", "Введите артикул и нажмите «Поиск»", false);
+            grid.Rows.Clear();
+            SetTableVisible(false);
+            resultCard.Visible = gapResult.Visible = false;
+        }
+
+        /// <summary>По введённому артикулу сам выбирает бренд в списке.</summary>
+        void DetectBrand()
+        {
+            var q = articleBox.Text.Trim();
+            if (q.Length == 0) { brandHint.Text = ""; ResetView(); return; }
+            var r = table.Search(q, null);
+            if (!r.Exact || r.Reverse) return;
+            var brands = r.Matches.Select(m => m.Brand).Distinct().ToList();
+            SelectBrand(brands.Count == 1 ? brands[0] : AllBrands,
+                        brands.Count == 1 ? "  · определён автоматически" : "  · у нескольких брендов");
+        }
+
+        void SelectBrand(string brand, string hint)
+        {
+            int idx = brandBox.Items.IndexOf(brand);
+            if (idx < 0) return;
+            settingBrand = true;
+            try { brandBox.SelectedIndex = idx; } finally { settingBrand = false; }
+            brandHint.Text = hint;
         }
 
         void SetTableVisible(bool visible)
@@ -413,9 +469,20 @@ namespace TettaProAnalogs
         void DoSearch()
         {
             var q = articleBox.Text.Trim();
-            if (q.Length == 0) { ShowAll(); return; }
+            if (q.Length == 0) { ResetView(); return; }
 
             var r = table.Search(q, SelectedBrand);
+            if (r.Matches.Count == 0 && SelectedBrand != null)
+            {
+                // У выбранного бренда такого артикула нет — ищем по всем брендам.
+                var all = table.Search(q, null);
+                if (all.Matches.Count > 0)
+                {
+                    var brands = all.Matches.Select(m => m.Brand).Distinct().ToList();
+                    SelectBrand(brands.Count == 1 ? brands[0] : AllBrands, brands.Count == 1 ? "  · определён автоматически" : "");
+                    r = table.Search(q, SelectedBrand);
+                }
+            }
             if (r.Matches.Count == 0)
             {
                 grid.Rows.Clear();
