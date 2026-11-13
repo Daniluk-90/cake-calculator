@@ -15,6 +15,7 @@ namespace TettaProAnalogs
         public string Competitor { get; set; }   // артикул конкурента, например «MDR-20-24»
         public string TettaPro { get; set; }     // аналог TETTAPRO, например «MTPR-M02024», или «Нет»
         public string Result { get; set; }       // колонка «Результат подбора»
+        public string Conditions { get; set; }   // колонка «Отличия и условия замены»
 
         /// <summary>В таблице прямо указано, что аналога нет («Нет»).</summary>
         public bool NoAnalog { get { return AnalogTable.IsNoAnalog(TettaPro); } }
@@ -87,6 +88,55 @@ namespace TettaProAnalogs
         public static AnalogTable Load(Stream xlsx, string source)
         {
             var rows = XlsxReader.ReadFirstSheet(xlsx);
+            return TryLoadList(rows, source) ?? LoadWide(rows, source);
+        }
+
+        /// <summary>
+        /// Основной формат — список: «Бренд | Модель / артикул | Кандидат TETTAPRO | Результат подбора | Отличия и условия замены».
+        /// Порядок столбцов любой, строка заголовков ищется автоматически.
+        /// </summary>
+        private static AnalogTable TryLoadList(List<List<string>> rows, string source)
+        {
+            for (int r = 0; r < rows.Count; r++)
+            {
+                int brand = -1, model = -1, tetta = -1, result = -1, cond = -1;
+                for (int c = 0; c < rows[r].Count; c++)
+                {
+                    var n = Normalize(rows[r][c]);
+                    if (n == "БРЕНД") brand = c;
+                    else if (n.StartsWith("МОДЕЛЬ") || n == "АРТИКУЛ") model = c;
+                    else if (n.Contains(TettaHeader)) tetta = c;
+                    else if (n == ResultHeader) result = c;
+                    else if (n.StartsWith("ОТЛИЧИЯ")) cond = c;
+                }
+                if (brand < 0 || model < 0 || tetta < 0) continue;
+
+                var table = new AnalogTable { Source = source };
+                var seen = new HashSet<string>();
+                for (int i = r + 1; i < rows.Count; i++)
+                {
+                    var row = rows[i];
+                    string b = Cell(row, brand), m = Cell(row, model), t = Cell(row, tetta);
+                    if (b.Length == 0 || m.Length == 0) continue;
+                    b = PrettyBrand(b);
+                    if (!seen.Add(b + "|" + Normalize(m) + "|" + Normalize(t))) continue;
+                    table.Pairs.Add(new AnalogPair
+                    {
+                        Brand = b, Competitor = m, TettaPro = t.Length == 0 ? "Нет" : t,
+                        Result = result >= 0 ? Cell(row, result) : "",
+                        Conditions = cond >= 0 ? Cell(row, cond) : "",
+                    });
+                }
+                table.Brands = table.Pairs.Select(p => p.Brand).Distinct().ToList();
+                if (table.Pairs.Count == 0) throw new InvalidDataException("В таблице нет ни одной строки с моделью.");
+                return table;
+            }
+            return null;
+        }
+
+        /// <summary>Старый формат: столбец TettaPRO и по столбцу на каждый бренд.</summary>
+        private static AnalogTable LoadWide(List<List<string>> rows, string source)
+        {
             var table = new AnalogTable { Source = source };
 
             int headerRow = -1, tettaCol = -1;
@@ -95,7 +145,7 @@ namespace TettaProAnalogs
                     if (Normalize(rows[r][c]) == TettaHeader) { headerRow = r; tettaCol = c; break; }
 
             if (headerRow < 0)
-                throw new InvalidDataException("В таблице не найдена колонка с заголовком «TettaPRO».");
+                throw new InvalidDataException("В таблице не найдены столбцы «Бренд», «Модель / артикул», «Кандидат TETTAPRO».");
 
             var brandCols = new Dictionary<int, string>();
             int resultCol = -1;

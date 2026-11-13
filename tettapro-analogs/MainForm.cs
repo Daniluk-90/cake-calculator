@@ -40,7 +40,7 @@ namespace TettaProAnalogs
         TextBox articleBox;
         Button searchButton;
         Panel resultCard;
-        Label resultCaption, resultValue, resultNote;
+        Label resultCaption, resultValue, resultNote, resultDetails;
         Button copyButton;
         DataGridView grid;
         Label statusLabel, gridCaption, brandHint;
@@ -146,7 +146,7 @@ namespace TettaProAnalogs
             gapResult = new Panel { Dock = DockStyle.Top, Height = 14, BackColor = PageBack };
 
             // --- Карточка результата ---
-            resultCard = new Panel { Dock = DockStyle.Top, Height = 118, BackColor = Color.White, Padding = new Padding(20, 12, 20, 12) };
+            resultCard = new Panel { Dock = DockStyle.Top, Height = 110, BackColor = Color.White, Padding = new Padding(20, 12, 20, 12) };
             resultCard.Paint += PaintResultCard;
             resultCaption = new Label { Text = "АНАЛОГ TETTAPRO", AutoSize = true, Location = new Point(24, 14), ForeColor = TextMuted, Font = new Font(Font.FontFamily, 8.5f, FontStyle.Bold) };
             resultValue = new Label { Text = "—", AutoSize = true, Location = new Point(20, 34), ForeColor = TextMain, Font = new Font(Font.FontFamily, 22f, FontStyle.Bold) };
@@ -155,8 +155,9 @@ namespace TettaProAnalogs
             copyButton.FlatAppearance.BorderColor = Accent;
             copyButton.FlatAppearance.MouseOverBackColor = SuccessBack;
             copyButton.Click += (s, e) => CopyResult();
-            resultCard.Controls.AddRange(new Control[] { resultCaption, resultValue, resultNote, copyButton });
-            resultCard.Resize += (s, e) => { copyButton.Location = new Point(resultCard.ClientSize.Width - 20 - copyButton.Width, 36); resultNote.MaximumSize = new Size(resultCard.ClientSize.Width - 48, 0); };
+            resultDetails = new Label { Text = "", AutoSize = true, Location = new Point(24, 100), ForeColor = TextMain, Font = new Font(Font.FontFamily, 9.5f) };
+            resultCard.Controls.AddRange(new Control[] { resultCaption, resultValue, resultNote, resultDetails, copyButton });
+            resultCard.Resize += (s, e) => LayoutResult();
 
             var gap2 = new Panel { Dock = DockStyle.Top, Height = 14, BackColor = PageBack };
 
@@ -197,10 +198,26 @@ namespace TettaProAnalogs
             grid.Columns.Add("competitor", "Артикул конкурента");
             grid.Columns.Add("tetta", "Аналог TETTAPRO");
             grid.Columns.Add("result", "Результат подбора");
-            grid.Columns["brand"].FillWeight = 20;
-            grid.Columns["competitor"].FillWeight = 30;
-            grid.Columns["tetta"].FillWeight = 20;
-            grid.Columns["result"].FillWeight = 30;
+            grid.Columns.Add("conditions", "Отличия и условия замены");
+            grid.Columns["brand"].FillWeight = 13;
+            grid.Columns["competitor"].FillWeight = 19;
+            grid.Columns["tetta"].FillWeight = 14;
+            grid.Columns["result"].FillWeight = 18;
+            grid.Columns["conditions"].FillWeight = 36;
+            grid.ScrollBars = ScrollBars.Vertical;
+            grid.ShowCellToolTips = true;   // полный текст длинной ячейки — во всплывающей подсказке
+            // Клик по строке — её условия замены выводятся полностью в карточке результата.
+            grid.CellClick += (s, e) =>
+            {
+                if (e.RowIndex < 0 || !resultCard.Visible) return;
+                var row = grid.Rows[e.RowIndex];
+                var cond = row.Cells["conditions"].Value as string;
+                if (string.IsNullOrEmpty(cond)) return;
+                resultDetails.Text = row.Cells["brand"].Value + " " + row.Cells["competitor"].Value + " → " + row.Cells["tetta"].Value
+                                     + ". Отличия и условия замены: " + cond;
+                resultDetails.Visible = true;
+                LayoutResult();
+            };
             grid.Columns["result"].DefaultCellStyle.ForeColor = TextMuted;
             grid.Columns["tetta"].DefaultCellStyle.Font = new Font(Font.FontFamily, 10f, FontStyle.Bold);
             grid.Columns["tetta"].DefaultCellStyle.ForeColor = Accent;
@@ -213,6 +230,7 @@ namespace TettaProAnalogs
             var menu = new ContextMenuStrip();
             menu.Items.Add("Копировать аналог TETTAPRO", null, (s, e) => CopyGridCell("tetta"));
             menu.Items.Add("Копировать артикул конкурента", null, (s, e) => CopyGridCell("competitor"));
+            menu.Items.Add("Копировать условия замены", null, (s, e) => CopyGridCell("conditions"));
             grid.ContextMenuStrip = menu;
 
             // Порядок добавления: элементы с Dock=Top добавляются в обратном порядке.
@@ -320,7 +338,7 @@ namespace TettaProAnalogs
             using (var b = new SolidBrush(border)) e.Graphics.FillRectangle(b, 0, 0, 5, c.Height);
         }
 
-        void SetResult(int state, string caption, string value, string note, bool canCopy)
+        void SetResult(int state, string caption, string value, string note, bool canCopy, string details = null)
         {
             resultState = state;
             resultCard.BackColor = state == 1 ? SuccessBack : state == 2 ? WarnBack : Color.White;
@@ -331,8 +349,25 @@ namespace TettaProAnalogs
             resultCard.Visible = gapResult.Visible = true;
             resultValue.Top = state == 2 ? 38 : 32;
             resultNote.Text = note;
+            resultDetails.Text = details ?? "";
+            resultDetails.Visible = resultDetails.Text.Length > 0;
             copyButton.Visible = canCopy;
+            LayoutResult();
             resultCard.Invalidate();
+        }
+
+        /// <summary>Раскладка карточки результата: текст переносится, высота подстраивается.</summary>
+        void LayoutResult()
+        {
+            int w = resultCard.ClientSize.Width;
+            copyButton.Location = new Point(w - 20 - copyButton.Width, 36);
+            int textW = Math.Max(200, w - 48);
+            resultNote.MaximumSize = new Size(copyButton.Visible ? Math.Max(200, copyButton.Left - 40) : textW, 0);
+            resultDetails.MaximumSize = new Size(textW, 0);
+            resultNote.Top = resultValue.Top + resultValue.PreferredHeight + 2;
+            resultDetails.Top = resultNote.Top + resultNote.PreferredHeight + 8;
+            int bottom = resultDetails.Visible ? resultDetails.Top + resultDetails.PreferredHeight : resultNote.Top + resultNote.PreferredHeight;
+            resultCard.Height = Math.Max(110, bottom + 16);
         }
 
         // ---------- Данные ----------
@@ -456,7 +491,7 @@ namespace TettaProAnalogs
             grid.Rows.Clear();
             foreach (var p in pairs)
             {
-                int i = grid.Rows.Add(p.Brand, p.Competitor, p.NoAnalog ? "Нет аналога" : p.TettaPro, p.Result ?? "");
+                int i = grid.Rows.Add(p.Brand, p.Competitor, p.NoAnalog ? "Нет аналога" : p.TettaPro, p.Result ?? "", p.Conditions ?? "");
                 if (p.NoAnalog)
                 {
                     grid.Rows[i].Cells["tetta"].Style.ForeColor = TextMuted;
@@ -497,11 +532,13 @@ namespace TettaProAnalogs
                 // Позиция есть в базе, но аналога TETTAPRO для неё нет.
                 var m0 = r.Matches[0];
                 var info = JoinResults(r.Matches);
+                var cond = JoinConditions(r.Matches);
                 grid.Rows.Clear();
                 SetTableVisible(false);
                 SetResult(2, "АНАЛОГ TETTAPRO ДЛЯ " + m0.Brand.ToUpperInvariant() + " " + m0.Competitor,
                     "Аналога TETTAPRO нет" + (info.Length > 0 ? " — " + info.ToLowerInvariant() : ""),
-                    "Напишите нам на почту " + Email + " для уточнения замены.", false);
+                    cond.Length > 0 ? cond : "Напишите нам на почту " + Email + " для уточнения замены.", false,
+                    cond.Length > 0 ? "Напишите нам на почту " + Email + " для уточнения замены." : null);
                 return;
             }
 
@@ -529,8 +566,10 @@ namespace TettaProAnalogs
                     string note = info.Length > 0 ? "Результат подбора: " + info
                                                   : "Нажмите «Копировать», чтобы вставить артикул в заказ";
                     if (analogs.Count > 1 && info.Length == 0) note = "Подходит любой из вариантов";
+                    var cond = JoinConditions(found);
                     SetResult(1, "АНАЛОГ TETTAPRO ДЛЯ " + src.Brand.ToUpperInvariant() + " " + src.Competitor,
-                        string.Join("  /  ", analogs), note, true);
+                        string.Join("  /  ", analogs), note, true,
+                        cond.Length > 0 ? "Отличия и условия замены: " + cond : null);
                 }
             }
             else if (r.Exact && r.Reverse)
@@ -549,8 +588,15 @@ namespace TettaProAnalogs
                     one != null ? one.TettaPro : "Найдено вариантов: " + r.Matches.Count,
                     one != null ? "Ближайшее совпадение: " + one.Brand + " " + one.Competitor + oneInfo
                                 : "Точного совпадения нет — выберите нужную строку в таблице ниже",
-                    one != null);
+                    one != null && !one.NoAnalog,
+                    one != null && !string.IsNullOrEmpty(one.Conditions) ? "Отличия и условия замены: " + one.Conditions : null);
             }
+        }
+
+        static string JoinConditions(IEnumerable<AnalogPair> pairs)
+        {
+            return string.Join(" ", pairs.Select(p => (p.Conditions ?? "").Trim()).Where(x => x.Length > 0)
+                                         .Distinct(StringComparer.OrdinalIgnoreCase));
         }
 
         static string JoinResults(IEnumerable<AnalogPair> pairs)
