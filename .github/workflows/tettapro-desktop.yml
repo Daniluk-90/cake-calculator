@@ -24,6 +24,8 @@ jobs:
           - os: macos-latest
             script: dist:mac
     runs-on: ${{ matrix.os }}
+    permissions:
+      contents: write
     defaults:
       run:
         working-directory: tettapro-analogs-desktop
@@ -44,17 +46,7 @@ jobs:
             tettapro-analogs-desktop/dist/*.dmg
             tettapro-analogs-desktop/dist/*-mac-*.zip
           if-no-files-found: error
-
-  release:
-    needs: build
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
-          path: files
-          merge-multiple: true
+      # Каждая платформа сразу добавляет свои файлы в общий выпуск — Windows не ждёт Mac и наоборот.
       - uses: softprops/action-gh-release@v2
         with:
           tag_name: analogs-v2.0.${{ github.run_number }}
@@ -66,4 +58,6 @@ jobs:
             Windows: TETTAPRO-Analogs-…-windows-setup.exe (установка) или …-windows-portable.exe (без установки).
             macOS: TETTAPRO-Analogs-…-mac.dmg (Intel и Apple Silicon). При первом запуске: правый клик по программе → «Открыть».
             Таблица общая с сайтом: ${{ env.TETTA_API_BASE }}
-          files: files/*
+          files: |
+            tettapro-analogs-desktop/dist/*.exe
+            tettapro-analogs-desktop/dist/*.dmg
