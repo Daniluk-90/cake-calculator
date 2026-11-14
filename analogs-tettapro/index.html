@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Система подбора аналогов — TETTAPRO</title>
+  <meta name="description" content="Подбор аналогов блоков питания на DIN-рейку TETTAPRO по артикулу, серии или наименованию. Одиночный и пакетный подбор, спецификация в Excel.">
+  <meta name="theme-color" content="#080b0d">
+  <link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div class="app" id="app">
+  <!-- Боковая панель -->
+  <aside class="sidebar">
+    <a class="brand" href="https://tettapro.ru" target="_blank" rel="noopener" aria-label="TETTAPRO — на главную">
+      <img src="assets/img/logo.svg" alt="TETTAPRO" width="1080" height="161">
+    </a>
+    <div class="tool-title"><span class="red-dash"></span>Система подбора <br>аналогов</div>
+
+    <div class="mode-switch" role="tablist" aria-label="Тип подбора">
+      <button role="tab" class="mode-btn is-active" data-mode="single" aria-selected="true">Одиночный</button>
+      <button role="tab" class="mode-btn" data-mode="batch" aria-selected="false">Пакетный</button>
+    </div>
+
+    <button class="side-link" data-open="about">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><path d="M12 11v6M12 7.5v.5"/></svg>
+      О сервисе
+    </button>
+    <button class="side-link" data-open="feedback">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8L3.5 9.7l5.9-.9z"/></svg>
+      Оцените сервис
+    </button>
+
+    <div class="side-bottom">
+      <div class="support">
+        <p>Не удалось подобрать аналог автоматически?</p>
+        <p>Обратитесь в <a class="support-link" data-mail="support">службу технической поддержки</a></p>
+      </div>
+      <a class="side-link small" href="https://ps.tetta.pro" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8"/></svg>
+        Каталог блоков питания
+      </a>
+    </div>
+  </aside>
+
+  <!-- Основная область -->
+  <main class="main">
+    <!-- ОДИНОЧНЫЙ ПОДБОР -->
+    <section class="mode-view" id="view-single">
+      <div class="grid">
+        <div class="col-search">
+          <div class="panel search-panel">
+            <h1 class="panel-title">Поиск оборудования</h1>
+            <p class="panel-sub">Подберите оборудование по артикулу, серии или наименованию</p>
+            <div class="search-box" id="search-box">
+              <svg class="search-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L20 20"/></svg>
+              <input id="search" type="search" autocomplete="off" spellcheck="false"
+                     placeholder="Артикул, серия или наименование" aria-label="Артикул, серия или наименование"
+                     aria-controls="search-dropdown" aria-expanded="false">
+              <button class="hint-btn" id="hint-btn" type="button" aria-label="Как работает поиск">?</button>
+              <button class="clear-btn" id="clear-btn" type="button" aria-label="Очистить поиск и сбросить выбор" hidden>×</button>
+              <div class="hint-pop" id="hint-pop" hidden>
+                <b>Как работает поиск в системе?</b>
+                <p>Поиск по продуктам осуществляется по совпадению слов в названии и описании товаров, а также по артикулам.</p>
+                <p>Поиск серий осуществляется по их названию и названиям продуктов, входящих в них.</p>
+              </div>
+              <div class="dropdown" id="search-dropdown" role="listbox" hidden></div>
+            </div>
+          </div>
+
+          <div class="panel ref-panel" id="ref-panel" hidden></div>
+        </div>
+
+        <div class="col-analog">
+          <div class="panel analog-panel" id="analog-panel"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ПАКЕТНЫЙ ПОДБОР -->
+    <section class="mode-view" id="view-batch" hidden>
+      <div class="panel batch-panel" id="batch-panel"></div>
+    </section>
+  </main>
+
+  <!-- Подобранное -->
+  <aside class="picked" id="picked">
+    <button class="picked-head" id="picked-toggle" type="button" aria-expanded="true">
+      <span>Подобранное</span><span class="picked-count" id="picked-count">0</span>
+      <svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+    </button>
+    <div class="picked-body" id="picked-body">
+      <div class="picked-list" id="picked-list"></div>
+      <div class="picked-actions" id="picked-actions">
+        <button class="btn btn-primary" id="dl-spec" type="button">Скачать спецификацию .xls</button>
+        <button class="btn btn-ghost" id="buy-all" type="button">Купить все</button>
+        <button class="btn btn-link" id="clear-picked" type="button">Очистить список</button>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<dialog id="modal" class="modal">
+  <button class="modal-close" type="button" aria-label="Закрыть">×</button>
+  <div id="modal-content"></div>
+</dialog>
+<div class="toasts" id="toasts" aria-live="polite"></div>
+
+<noscript><p class="noscript">Для работы системы подбора аналогов включите JavaScript.</p></noscript>
+
+<script src="data/db.js"></script>
+<script src="assets/config.js"></script>
+<script src="assets/engine.js"></script>
+<script src="assets/vendor/xlsx.full.min.js" defer></script>
+<script src="assets/app.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Аналоги | Админ — TETTAPRO</title>
+  <link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="assets/style.css">
+  <style>
+    .admin{max-width:980px;margin:0 auto;padding:32px 16px;display:flex;flex-direction:column;gap:20px}
+    .admin header{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+    .admin header img{width:150px}
+    .admin h1{font-size:22px;margin:0}
+    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
+    .stat{padding:14px;border-radius:12px;background:var(--bg2);border:1px solid var(--line)}
+    .stat b{display:block;font-size:24px}
+    .err{color:var(--warn);font-size:13px;margin:4px 0}
+    code{background:var(--bg2);padding:2px 6px;border-radius:6px}
+  </style>
+</head>
+<body>
+<div class="admin">
+  <header><img src="assets/img/logo.svg" alt="TETTAPRO"><h1>Админ-панель системы подбора аналогов</h1></header>
+
+  <div class="panel">
+    <h2 class="panel-title">Текущая база</h2>
+    <div class="stats" id="stats"></div>
+  </div>
+
+  <div class="panel">
+    <h2 class="panel-title">Аналоги</h2>
+    <p class="panel-sub">1. Скачайте актуальную версию базы в Excel. 2. Добавьте или исправьте строки на листах «Референсы» и «TETTAPRO». 3. Загрузите файл — получите новый <code>data/db.js</code>, замените им файл на сервере.</p>
+    <div class="row">
+      <button class="btn btn-ghost" id="dl-db" type="button">Скачать актуальную версию</button>
+      <label class="btn btn-primary">Загрузить файл<input type="file" id="up-db" accept=".xlsx,.xls" hidden></label>
+    </div>
+    <div id="result"></div>
+  </div>
+
+  <div class="panel small muted">
+    <p>Колонка «Аналоги (вручную)» необязательна. Оставьте пустой — аналог подберётся автоматически по напряжению и мощности. Формат: <code>MTPR-E12024</code>, несколько вариантов на выбор через <code>;</code> — <code>MTPR-M06024; MTPR-E12024</code>, количество — <code>MTPR-X24024*2</code>, аналог из нескольких позиций — <code>MTPR-X24024+MTPR-M06024</code>, нет аналога — <code>-</code>.</p>
+    <p>Эта страница работает только в браузере и ничего не отправляет на сервер. Закройте её от посторонних на своём сервере (например, паролем) или не выкладывайте вовсе.</p>
+  </div>
+</div>
+<script src="data/db.js"></script>
+<script src="assets/config.js"></script>
+<script src="assets/engine.js"></script>
+<script src="assets/vendor/xlsx.full.min.js"></script>
+<script src="assets/admin.js"></script>
+</body>
+</html>
