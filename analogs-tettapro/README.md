@@ -33,7 +33,7 @@
 в `router/README.md`, установка одной командой `sh router/setup.sh`.
 
 Название сайта — «Подбор аналогов TettaPRO» (вкладка браузера). На экране «Домой» iPhone он
-называется «TettaPRO» и показывается с красной иконкой θ (`assets/img/apple-touch-icon.png`, `site.webmanifest`).
+называется «TettaPRO» и показывается с сине-голубой иконкой θ на белом фоне (исходник `assets/img/icon.svg`, PNG — `assets/img/apple-touch-icon.png`, `icon-192.png`, `icon-512.png`).
 
 Проверить локально можно двумя способами: открыть `index.html` двойным кликом или выполнить
 `python3 -m http.server` в папке и открыть http://localhost:8000.
