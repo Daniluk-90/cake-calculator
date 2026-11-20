@@ -6,14 +6,15 @@
   var $ = function (s, r) { return (r || document).querySelector(s); };
   var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
   var params = new URLSearchParams(location.search);
-  var STORE = "tettapro-analogs-picked-v1";
+  var STORE = "tettapro-analogs-picked-v2";
+  var fmt = TettaEngine.fmt;
 
   function esc(s) {
     return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
       return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
     });
   }
-  function fmt(n) { return n == null ? "—" : String(n).replace(".", ","); }
+  function deg(n) { return n == null ? "—" : (n > 0 ? "+" : n < 0 ? "−" : "") + Math.abs(n); }
   function mailto(to, subject, body) {
     return "mailto:" + to + "?subject=" + encodeURIComponent(subject) + "&body=" + encodeURIComponent(body || "");
   }
@@ -26,8 +27,11 @@
     setTimeout(function () { t.remove(); }, 3700);
   }
   function track(event, data) {
-    // Хук для Яндекс.Метрики / GTM на вашем сайте: window.dataLayer или ym
+    // Хук для Яндекс.Метрики / GTM на вашем сайте: window.dataLayer
     try { (window.dataLayer = window.dataLayer || []).push(Object.assign({ event: "analogs_" + event }, data || {})); } catch (e) {}
+  }
+  function warnText(ev) {
+    return ev ? ev.warns.map(function (w) { return w.label + ": " + w.text; }).join("; ") : "";
   }
 
   /* ---------- Режим встраивания ---------- */
@@ -36,8 +40,7 @@
   /* ---------- Состояние ---------- */
   var state = {
     mode: params.get("mode") === "batch" ? "batch" : "single",
-    query: "",
-    ref: null,            // выбранный референс (после «Подобрать»)
+    ref: null,            // референс, для которого выполнен подбор
     selLine: null,        // выбранная серия
     selRef: null,         // выбранный продукт в серии
     result: null,         // результат подбора
@@ -46,13 +49,8 @@
     confirmed: false,
     picked: load()
   };
-
-  function load() {
-    try { return JSON.parse(localStorage.getItem(STORE)) || []; } catch (e) { return []; }
-  }
-  function save() {
-    try { localStorage.setItem(STORE, JSON.stringify(state.picked)); } catch (e) {}
-  }
+  function load() { try { return JSON.parse(localStorage.getItem(STORE)) || []; } catch (e) { return []; } }
+  function save() { try { localStorage.setItem(STORE, JSON.stringify(state.picked)); } catch (e) {} }
 
   /* ---------- Переключение режимов ---------- */
   function setMode(m) {
@@ -71,13 +69,13 @@
   $$(".mode-btn").forEach(function (b) { b.addEventListener("click", function () { setMode(b.dataset.mode); }); });
 
   /* ---------- Поиск ---------- */
-  var input = $("#search"), dd = $("#search-dropdown"), activeIdx = -1, ddItems = [];
+  var input = $("#search"), dd = $("#search-dropdown"), activeIdx = -1, ddCount = 0;
   var GROUPS = { ref: "Референсы", line: "Серия", desc: "Наименование" };
 
   function renderDropdown() {
     var q = input.value.trim();
     $("#clear-btn").hidden = !input.value;
-    ddItems = [];
+    ddCount = 0;
     activeIdx = -1;
     if (!q) { closeDD(); return; }
     var html = "";
@@ -87,15 +85,16 @@
       var own = engine.findProduct(q);
       var r = engine.search(q);
       if (own) {
-        html += '<div class="dd-group">TETTAPRO</div>';
-        html += item({ type: "own", value: own.article }, esc(own.article), esc(own.name));
+        html += '<div class="dd-group">TettaPRO</div>';
+        html += item("own", own.a, own.a, esc(own.a), esc(own.name));
       }
       ["ref", "line", "desc"].forEach(function (g) {
         if (!r[g].length) return;
         html += '<div class="dd-group">' + GROUPS[g] + "</div>";
         r[g].forEach(function (x) {
-          if (g === "line") html += item({ type: "line", value: x.key }, hl(x.series, q), esc(x.manufacturer) + " · " + x.items.length + " поз.");
-          else html += item({ type: "ref", value: x.article }, g === "ref" ? hl(x.article, q) : esc(x.article), (g === "desc" ? hl(x.name, q) : esc(x.name)) + " · " + esc(x.manufacturer));
+          if (g === "line") html += item("line", x.key, "", hl(x.series, q), esc(x.manufacturer) + " · " + x.items.length + " поз.");
+          else html += item("ref", x.id, x.a, g === "ref" ? hl(x.a, q) : esc(x.a),
+            "<b>" + esc(x.m) + "</b> · " + (g === "desc" ? hl(x.title, q) : esc(x.title)));
         });
       });
       if (!html) html = '<div class="dd-empty">К сожалению, мы не нашли позиции по вашему запросу.<br><a data-mail="support">Написать в поддержку</a></div>';
@@ -103,18 +102,17 @@
     dd.innerHTML = html;
     dd.hidden = false;
     input.setAttribute("aria-expanded", "true");
-    ddItems = $$(".dd-item", dd);
   }
-  function item(data, title, sub) {
-    var i = ddItems.length; ddItems.push(1);
-    return '<button type="button" class="dd-item" role="option" data-type="' + data.type + '" data-value="' + esc(data.value) + '" id="dd-' + i + '">' +
+  function item(type, value, article, title, sub) {
+    var i = ddCount++;
+    return '<button type="button" class="dd-item" role="option" data-type="' + type + '" data-value="' + esc(value) + '" data-article="' + esc(article) + '" id="dd-' + i + '">' +
       '<span class="dd-title">' + title + '</span><span class="dd-sub">' + sub + "</span></button>";
   }
   function hl(text, q) {
-    var t = esc(text), nq = q.trim();
-    if (!nq) return t;
-    var i = String(text).toLowerCase().indexOf(nq.toLowerCase());
-    if (i === -1) return t;
+    text = String(text || "");
+    var nq = q.trim();
+    var i = text.toLowerCase().indexOf(nq.toLowerCase());
+    if (!nq || i === -1) return esc(text);
     return esc(text.slice(0, i)) + "<mark>" + esc(text.slice(i, i + nq.length)) + "</mark>" + esc(text.slice(i + nq.length));
   }
   function closeDD() { dd.hidden = true; input.setAttribute("aria-expanded", "false"); }
@@ -128,7 +126,8 @@
       clearTimeout(debounce);
       renderDropdown();
       var all = $$(".dd-item", dd);
-      var hit = exactItem(all) || (all.length === 1 ? all[0] : null);
+      var exact = exactItems(all);
+      var hit = exact.length === 1 ? exact[0] : (all.length === 1 ? all[0] : null);
       if (hit) hit.click();
       return;
     }
@@ -141,13 +140,13 @@
       if (items[activeIdx]) { items[activeIdx].scrollIntoView({ block: "nearest" }); input.setAttribute("aria-activedescendant", items[activeIdx].id); }
     } else if (e.key === "Enter") {
       e.preventDefault();
-      var pick = items[activeIdx] || (items.length === 1 ? items[0] : null) || exactItem(items);
-      if (pick) pick.click();
+      if (items[activeIdx]) items[activeIdx].click();
     } else if (e.key === "Escape") closeDD();
   });
-  function exactItem(items) {
+  // Точные совпадения по артикулу (одинаковый артикул бывает у нескольких производителей)
+  function exactItems(items) {
     var nq = TettaEngine.norm(input.value);
-    return items.filter(function (x) { return x.dataset.type !== "line" && TettaEngine.norm(x.dataset.value) === nq; })[0] || null;
+    return items.filter(function (x) { return x.dataset.type !== "line" && TettaEngine.norm(x.dataset.article) === nq; });
   }
   dd.addEventListener("click", function (e) {
     var b = e.target.closest(".dd-item");
@@ -155,7 +154,7 @@
     closeDD();
     if (b.dataset.type === "line") selectLine(b.dataset.value);
     else if (b.dataset.type === "own") showOwn(engine.findProduct(b.dataset.value));
-    else selectRef(engine.findRef(b.dataset.value));
+    else selectRef(engine.getRef(+b.dataset.value));
   });
   document.addEventListener("click", function (e) {
     if (!e.target.closest("#search-box")) { closeDD(); $("#hint-pop").hidden = true; }
@@ -176,8 +175,8 @@
   /* ---------- Выбор референса ---------- */
   function selectRef(ref) {
     if (!ref) return;
-    track("select_ref", { reference: ref.article });
-    input.value = ref.article;
+    track("select_ref", { reference: ref.a, manufacturer: ref.m });
+    input.value = ref.a;
     $("#clear-btn").hidden = false;
     state.selLine = engine.lineOf(ref);
     state.selRef = ref;
@@ -202,23 +201,26 @@
     renderAnalog();
   }
 
+  function info(label, v) { return v == null || v === "" ? "" : "<div><dt>" + label + ":</dt><dd>" + esc(v) + "</dd></div>"; }
+  function sizeTxt(o) { return o.w != null ? fmt(o.w) + " × " + fmt(o.h) + " × " + fmt(o.d) + " мм" : ""; }
+  function tempTxt(o) { return o.tmin != null || o.tmax != null ? deg(o.tmin) + "…" + deg(o.tmax) + " °C" : ""; }
+  function inputTxt(o) { return [o.ac ? o.ac + " В AC" : "", o.dc ? o.dc + " В DC" : ""].filter(Boolean).join(" / ") + (o.ph ? ", " + o.ph : ""); }
+
   function renderRefPanel() {
     var panel = $("#ref-panel"), line = state.selLine, r = state.selRef;
     var lineOpts = engine.lines.map(function (l) {
       return '<option value="' + esc(l.key) + '"' + (line && l.key === line.key ? " selected" : "") + ">" + esc(l.series) + " — " + esc(l.manufacturer) + "</option>";
     }).join("");
     var prodOpts = line ? line.items.map(function (x) {
-      return '<option value="' + esc(x.article) + '"' + (r && x.id === r.id ? " selected" : "") + ">" + esc(x.article) + " — " + esc(x.name) + "</option>";
+      return '<option value="' + x.id + '"' + (r && x.id === r.id ? " selected" : "") + ">" + esc(x.a) + " — " + esc(x.title) + "</option>";
     }).join("") : "";
     panel.innerHTML =
       '<label class="field"><span>Серия</span><select id="sel-line"><option value="" disabled' + (line ? "" : " selected") + ">Выберите серию</option>" + lineOpts + "</select></label>" +
       '<label class="field"><span>Релевантный продукт</span><select id="sel-ref"' + (line ? "" : " disabled") + '><option value="" disabled' + (r ? "" : " selected") + ">" + (line && line.items.length ? "Выберите продукт" : "Продукты отсутствуют") + "</option>" + prodOpts + "</select></label>" +
       (r ? '<dl class="ref-info">' +
-        "<div><dt>Артикул:</dt><dd>" + esc(r.article) + "</dd></div>" +
-        "<div><dt>Наименование:</dt><dd>" + esc(r.name) + "</dd></div>" +
-        "<div><dt>Серия:</dt><dd>" + esc(r.series) + "</dd></div>" +
-        "<div><dt>Производитель:</dt><dd>" + esc(r.manufacturer) + "</dd></div>" +
-        "<div><dt>Параметры:</dt><dd>" + fmt(r.power) + " Вт · " + fmt(r.voltage) + " В · " + fmt(r.current) + " А</dd></div>" +
+        info("Артикул", r.a) + info("Наименование", r.name) + info("Серия", r.s) + info("Производитель", r.m) +
+        info("Выход", fmt(r.power) + " Вт · " + fmt(r.voltage) + " В DC · " + fmt(r.current) + " А") +
+        info("Вход", inputTxt(r)) + info("Габариты (Ш×В×Г)", sizeTxt(r)) + info("Температура", tempTxt(r)) +
         "</dl>" : (line ? '<p class="muted small">Выберите продукт из серии, чтобы подобрать аналог.</p>' : "")) +
       '<div class="ref-actions">' +
       '<label class="field qty-field"><span>Количество</span>' + stepper("ref-qty", state.qty) + "</label>" +
@@ -227,7 +229,7 @@
     panel.hidden = false;
 
     $("#sel-line").addEventListener("change", function (e) { selectLine(e.target.value); });
-    $("#sel-ref").addEventListener("change", function (e) { selectRef(engine.findRef(e.target.value)); });
+    $("#sel-ref").addEventListener("change", function (e) { selectRef(engine.getRef(+e.target.value)); });
     bindStepper(panel, "ref-qty", function (v) { state.qty = v; });
     $("#do-match").addEventListener("click", doMatch);
     $("#new-search").addEventListener("click", function () { resetSingle(); input.focus(); });
@@ -253,31 +255,37 @@
     state.result = engine.analogsFor(state.ref);
     state.optionIndex = 0;
     state.confirmed = false;
-    track("search_click", { reference: state.ref.article, found: state.result.options.length });
+    track("search_click", { reference: state.ref.a, found: state.result.options.length });
     renderAnalog();
     if (window.innerWidth < 1100) $("#analog-panel").scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
-  function productCard(p, qty, ref) {
-    var cmp = ref ? '<table class="cmp"><thead><tr><th></th><th>' + esc(ref.article) + "</th><th>" + esc(p.article) + "</th></tr></thead><tbody>" +
-      row("Мощность", fmt(ref.power) + " Вт", fmt(p.power) + " Вт", p.power >= ref.power) +
-      row("Выходное напряжение", fmt(ref.voltage) + " В DC", fmt(p.voltage) + " В DC", p.voltage === ref.voltage) +
-      row("Выходной ток", fmt(ref.current) + " А", fmt(p.current) + " А", !ref.current || p.current >= ref.current) +
-      "</tbody></table>" : "";
+  var ICON = { ok: "✓", warn: "!", info: "i", unknown: "?" };
+  function checksTable(ev, ref) {
+    return '<table class="cmp"><thead><tr><th>Параметр</th><th>' + esc(ref.a) + "</th><th>" + esc(ev.product.a) + "</th></tr></thead><tbody>" +
+      ev.checks.map(function (c) {
+        return '<tr class="st-' + c.status + '"><td>' + esc(c.label) + "</td><td>" + esc(c.ref) + '</td><td><span class="st-ico" aria-hidden="true">' + ICON[c.status] + "</span>" + esc(c.tetta) +
+          (c.text ? '<div class="st-text">' + esc(c.text) + "</div>" : "") + "</td></tr>";
+      }).join("") + "</tbody></table>";
+  }
+
+  function productCard(p, qty, ev, ref) {
+    var img = p.image ? '<img src="' + esc(p.image) + '" alt="' + esc(p.a) + '" loading="lazy">' : '<img src="assets/img/theta.svg" alt="" class="no-photo">';
     return '<div class="product">' +
-      '<div class="product-img"><img src="' + esc(p.image) + '" alt="' + esc(p.article) + '" loading="lazy"></div>' +
+      '<div class="product-img' + (p.image ? "" : " is-empty") + '">' + img + "</div>" +
       '<div class="product-body">' +
-      '<div class="product-series">' + esc(p.series) + " SERIES</div>" +
-      '<div class="product-article">' + esc(p.article) + (qty > 1 ? ' <span class="x">× ' + qty + "</span>" : "") + "</div>" +
+      '<div class="product-series">' + esc(p.s) + " SERIES</div>" +
+      '<div class="product-article">' + esc(p.a) + (qty > 1 ? ' <span class="x">× ' + qty + "</span>" : "") + "</div>" +
       '<div class="product-name">' + esc(p.name) + "</div>" +
+      (ev ? '<span class="badge badge-' + ev.level + '">' + esc(ev.levelText) + "</span>" : "") +
       '<div class="specs">' +
-      spec("Мощность", fmt(p.power) + " Вт") + spec("Выход", fmt(p.voltage) + " В DC / " + fmt(p.current) + " А") +
-      spec("Вход", p.input) + spec("КПД", p.efficiency) + spec("Габариты (Ш×В×Г)", p.size) + spec("Рабочая температура", p.temp) +
-      spec("Гарантия", p.warranty) + "</div>" + cmp +
-      "</div></div>";
+      spec("Выход", fmt(p.voltage) + " В DC / " + fmt(p.current) + " А") + spec("Мощность", fmt(p.power) + " Вт") +
+      spec("Вход", inputTxt(p)) + spec("КПД", p.efficiency) + spec("Габариты (Ш×В×Г)", sizeTxt(p) || "уточняются") +
+      spec("Рабочая температура", tempTxt(p)) + spec("DC OK", p.dcok) + spec("Гарантия", p.warranty) + "</div>" +
+      "</div></div>" +
+      (ev && ref ? '<div class="cmp-wrap"><div class="cmp-title">Сравнение с ' + esc(ref.a) + " (" + esc(ref.m) + ")</div>" + checksTable(ev, ref) + "</div>" : "");
   }
   function spec(k, v) { return v ? '<div class="spec"><span>' + k + "</span><b>" + esc(v) + "</b></div>" : ""; }
-  function row(k, a, b, ok) { return "<tr><td>" + k + "</td><td>" + esc(a) + '</td><td class="' + (ok ? "ok" : "warn") + '">' + esc(b) + "</td></tr>"; }
 
   function renderAnalog() {
     var panel = $("#analog-panel"), res = state.result, ref = state.ref;
@@ -289,34 +297,35 @@
     }
     if (res.own) {
       var p = res.own;
-      panel.innerHTML = head + '<p class="note">Это оборудование TETTAPRO — замена не требуется.</p>' + productCard(p, 1) +
+      panel.innerHTML = head + '<p class="note">Это оборудование TettaPRO — замена не требуется.</p>' + productCard(p, 1) +
         '<div class="analog-actions"><a class="btn btn-primary" href="' + esc(p.url) + '" target="_blank" rel="noopener">Подробнее о модели</a>' +
         '<a class="btn btn-ghost" href="' + esc(buyLink([{ product: p, qty: 1 }], 1)) + '">Купить</a></div>';
       return;
     }
     if (!res.options.length) {
-      panel.innerHTML = head + '<div class="not-found"><b>К сожалению, мы не нашли доступный аналог для данной позиции.</b>' +
+      panel.innerHTML = head + '<div class="ref-line">Замена для <b>' + esc(ref.a) + "</b> · " + esc(ref.m) + "</div>" +
+        '<div class="not-found"><b>К сожалению, мы не нашли доступный аналог для данной позиции.</b>' +
         (res.reason ? "<p>" + esc(res.reason) + ".</p>" : "") +
-        '<p>Пожалуйста, обратитесь за консультацией по адресу <a href="' + esc(mailto(CFG.supportEmail, "Подбор аналога: " + ref.article, "Здравствуйте! Прошу подобрать аналог TETTAPRO для: " + ref.article + " (" + ref.manufacturer + "), " + ref.name + ".\nКоличество: " + state.qty + " шт.")) + '">' + esc(CFG.supportEmail) + "</a></p></div>" +
+        '<p>Пожалуйста, обратитесь за консультацией по адресу <a href="' + esc(mailto(CFG.supportEmail, "Подбор аналога: " + ref.a, "Здравствуйте! Прошу подобрать аналог TettaPRO для: " + ref.a + " (" + ref.m + "), " + ref.name + ".\nКоличество: " + state.qty + " шт.")) + '">' + esc(CFG.supportEmail) + "</a></p></div>" +
         '<div class="analog-actions"><button class="btn btn-ghost" id="again" type="button">Новый подбор</button></div>';
       $("#again").addEventListener("click", function () { resetSingle(); input.focus(); });
       return;
     }
 
     var multi = res.options.length > 1;
-    var html = head + '<div class="ref-line">Замена для <b>' + esc(ref.article) + "</b> · " + esc(ref.manufacturer) + " · " + state.qty + " шт</div>";
+    var html = head + '<div class="ref-line">Замена для <b>' + esc(ref.a) + "</b> · " + esc(ref.m) + " · " + state.qty + " шт</div>";
     if (multi && !state.confirmed) {
       html += '<p class="note">Для данного референса доступно несколько аналогов.<br>Пожалуйста, выберите подходящий вам вариант.</p><div class="tabs" role="tablist">';
       res.options.forEach(function (o, i) {
-        html += '<button type="button" role="tab" class="tab' + (i === state.optionIndex ? " is-active" : "") + '" data-opt="' + i + '">Выбрать аналог ' + (i + 1) +
-          '<small>' + esc(o.items.map(function (x) { return x.product.article; }).join(" + ")) + (o.note ? " · " + esc(o.note) : "") + "</small></button>";
+        html += '<button type="button" role="tab" class="tab' + (i === state.optionIndex ? " is-active" : "") + '" data-opt="' + i + '">' +
+          '<span class="tab-head">Выбрать аналог ' + (i + 1) + '<i class="dot dot-' + o.eval.level + '" title="' + esc(o.eval.levelText) + '"></i></span>' +
+          "<small><b>" + esc(o.items[0].product.a) + "</b> · " + esc(o.note) + "</small></button>";
       });
       html += "</div>";
     }
     var opt = res.options[state.optionIndex];
-    if (opt.items.length > 1) html += '<p class="note">Аналог состоит из нескольких позиций</p>';
-    else if (!multi && opt.note) html += '<p class="note small">' + esc(opt.note) + "</p>";
-    opt.items.forEach(function (x) { html += productCard(x.product, x.qty, opt.items.length === 1 ? ref : null); });
+    if (!multi) html += '<p class="note small">' + esc(opt.note) + "</p>";
+    html += productCard(opt.items[0].product, opt.items[0].qty, opt.eval, ref);
 
     var buy = buyLink(opt.items, state.qty);
     html += '<div class="analog-actions">';
@@ -325,7 +334,7 @@
     } else {
       html += '<button class="btn btn-primary" id="confirm" type="button">' + (multi ? "Подтвердить выбор" : "Добавить в подобранное") + "</button>";
     }
-    html += '<a class="btn btn-ghost" href="' + esc(buy) + '">' + (opt.items.length > 1 ? "Купить все" : "Купить") + "</a>" +
+    html += '<a class="btn btn-ghost" href="' + esc(buy) + '">Купить</a>' +
       '<a class="btn btn-link" href="' + esc(opt.items[0].product.url) + '" target="_blank" rel="noopener">Характеристики ↗</a></div>';
     panel.innerHTML = html;
 
@@ -335,23 +344,21 @@
   }
 
   function buyLink(items, qty) {
-    var lines = items.map(function (x) { return "• " + x.product.article + " — " + (x.qty * qty) + " шт."; }).join("\n");
-    return mailto(CFG.salesEmail, "TETTAPRO — запрос цены", "Здравствуйте! Прошу выставить предложение:\n" + lines + "\n\nКомпания:\nКонтактное лицо:\nТелефон:");
+    var lines = items.map(function (x) { return "• " + x.product.a + " — " + (x.qty * qty) + " шт."; }).join("\n");
+    return mailto(CFG.salesEmail, "TettaPRO — запрос цены", "Здравствуйте! Прошу выставить предложение:\n" + lines + "\n\nКомпания:\nКонтактное лицо:\nТелефон:");
   }
 
   function confirmPick() {
-    var opt = state.result.options[state.optionIndex], ref = state.ref;
-    var existing = state.picked.filter(function (p) { return p.ref === ref.article && p.option === opt.items.map(function (x) { return x.product.article; }).join("+"); })[0];
+    var opt = state.result.options[state.optionIndex], ref = state.ref, art = opt.items[0].product.a;
+    var existing = state.picked.filter(function (p) { return p.refId === ref.m + "|" + ref.a && p.analog === art; })[0];
     if (existing) existing.qty += state.qty;
     else state.picked.push({
-      ref: ref.article, refName: ref.name, manufacturer: ref.manufacturer, series: ref.series,
-      option: opt.items.map(function (x) { return x.product.article; }).join("+"),
-      items: opt.items.map(function (x) { return { article: x.product.article, qty: x.qty }; }),
-      qty: state.qty
+      refId: ref.m + "|" + ref.a, ref: ref.a, refName: ref.name, manufacturer: ref.m,
+      analog: art, analogQty: opt.items[0].qty, level: opt.eval.levelText, warn: warnText(opt.eval), qty: state.qty
     });
     save();
     state.confirmed = true;
-    track("analog_confirm", { reference: ref.article, analog: opt.items[0].product.article });
+    track("analog_confirm", { reference: ref.a, analog: art, level: opt.eval.level });
     renderAnalog();
     renderPicked();
     toast("Аналог добавлен в «Подобранное»");
@@ -367,9 +374,8 @@
       return;
     }
     list.innerHTML = state.picked.map(function (p, i) {
-      var analog = p.items.map(function (x) { return esc(x.article) + (x.qty > 1 ? " ×" + x.qty : ""); }).join(" + ");
       return '<div class="pick" data-i="' + i + '">' +
-        '<div class="pick-top"><div><div class="pick-analog">' + analog + '</div><div class="pick-ref">вместо ' + esc(p.ref) + " · " + esc(p.manufacturer) + "</div></div>" +
+        '<div class="pick-top"><div><div class="pick-analog">' + esc(p.analog) + (p.warn ? ' <i class="dot dot-partial" title="' + esc(p.level) + '"></i>' : ' <i class="dot dot-full" title="' + esc(p.level) + '"></i>') + '</div><div class="pick-ref">вместо ' + esc(p.ref) + " · " + esc(p.manufacturer) + "</div></div>" +
         '<button class="icon-btn" data-del="' + i + '" type="button" aria-label="Удалить позицию" title="Удалить из списка"><svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6"/></svg></button></div>' +
         stepper("pick-" + i, p.qty) + "</div>";
     }).join("");
@@ -387,47 +393,46 @@
     state.picked = []; save(); renderPicked();
   });
   $("#dl-spec").addEventListener("click", function () {
-    var rows = [];
-    state.picked.forEach(function (p) {
-      p.items.forEach(function (x) {
-        var pr = engine.findProduct(x.article) || {};
-        rows.push({ refArticle: p.ref, refName: p.refName, manufacturer: p.manufacturer, qty: p.qty,
-          article: x.article, name: pr.name, aqty: p.qty * x.qty, url: pr.url, comment: p.items.length > 1 ? "Аналог из нескольких позиций" : "" });
-      });
+    var rows = state.picked.map(function (p) {
+      var pr = engine.findProduct(p.analog) || {};
+      return { refArticle: p.ref, refName: p.refName, manufacturer: p.manufacturer, qty: p.qty,
+        article: p.analog, name: pr.name, aqty: p.qty * (p.analogQty || 1), url: pr.url, level: p.level, comment: p.warn };
     });
-    exportSpec(rows, "Спецификация_TETTAPRO_" + today() + ".xlsx");
+    exportSpec(rows, "Спецификация_TettaPRO_" + today() + ".xlsx");
     track("download_spec", { mode: "single", rows: rows.length });
   });
   $("#buy-all").addEventListener("click", function () {
     var agg = {};
-    state.picked.forEach(function (p) { p.items.forEach(function (x) { agg[x.article] = (agg[x.article] || 0) + p.qty * x.qty; }); });
-    var lines = Object.keys(agg).map(function (a) { return "• " + a + " — " + agg[a] + " шт."; }).join("\n");
-    location.href = mailto(CFG.salesEmail, "TETTAPRO — запрос цены по спецификации", "Здравствуйте! Прошу выставить предложение:\n" + lines + "\n\nСпецификацию Excel прикладываю (кнопка «Скачать спецификацию»).\n\nКомпания:\nКонтактное лицо:\nТелефон:");
+    state.picked.forEach(function (p) { agg[p.analog] = (agg[p.analog] || 0) + p.qty * (p.analogQty || 1); });
+    location.href = buyAllLink(agg);
   });
+  function buyAllLink(agg) {
+    var lines = Object.keys(agg).map(function (a) { return "• " + a + " — " + agg[a] + " шт."; }).join("\n");
+    return mailto(CFG.salesEmail, "TettaPRO — запрос цены по спецификации", "Здравствуйте! Прошу выставить предложение:\n" + lines + "\n\nСпецификацию Excel прикладываю.\n\nКомпания:\nКонтактное лицо:\nТелефон:");
+  }
 
   function today() { return new Date().toISOString().slice(0, 10); }
 
   /* ---------- Экспорт в Excel ---------- */
   function exportSpec(rows, filename, summary) {
     if (!window.XLSX) { toast("Модуль Excel ещё загружается, попробуйте через секунду", "error"); return; }
-    var head = ["№", "Референс: артикул", "Референс: наименование", "Производитель", "Кол-во, шт", "Аналог TETTAPRO: артикул", "Аналог: наименование", "Кол-во аналога, шт", "Ссылка", "Комментарий"];
-    var aoa = [["Спецификация подбора аналогов TETTAPRO от " + new Date().toLocaleDateString("ru-RU")]];
+    var head = ["№", "Референс: артикул", "Референс: наименование", "Производитель", "Кол-во, шт", "Аналог TettaPRO: артикул", "Аналог: наименование", "Кол-во аналога, шт", "Соответствие", "Оговорки / комментарий", "Ссылка"];
+    var aoa = [["Спецификация подбора аналогов TettaPRO от " + new Date().toLocaleDateString("ru-RU")]];
     if (summary) aoa.push([summary]);
     aoa.push([]);
     aoa.push(head);
     rows.forEach(function (r, i) {
-      aoa.push([i + 1, r.refArticle, r.refName || "", r.manufacturer || "", r.qty, r.article || "—", r.name || "", r.article ? r.aqty : "", r.url || "", r.comment || ""]);
+      aoa.push([i + 1, r.refArticle, r.refName || "", r.manufacturer || "", r.qty, r.article || "—", r.name || "", r.article ? r.aqty : "", r.level || (r.article ? "" : "Аналог не найден"), r.comment || "", r.url || ""]);
     });
-    // итог по моделям TETTAPRO
     var agg = {};
     rows.forEach(function (r) { if (r.article) agg[r.article] = (agg[r.article] || 0) + (r.aqty || 0); });
     aoa.push([]);
-    aoa.push(["", "Итого к заказу TETTAPRO"]);
+    aoa.push(["", "Итого к заказу TettaPRO"]);
     Object.keys(agg).forEach(function (a) { var p = engine.findProduct(a) || {}; aoa.push(["", a, p.name || "", "", agg[a]]); });
     aoa.push([]);
-    aoa.push(["", "Запрос цены: " + CFG.salesEmail + " · " + CFG.catalogUrl]);
+    aoa.push(["", "Перед заменой сверьте оговорки. Запрос цены: " + CFG.salesEmail + " · " + CFG.catalogUrl]);
     var ws = XLSX.utils.aoa_to_sheet(aoa);
-    ws["!cols"] = [{ wch: 5 }, { wch: 22 }, { wch: 46 }, { wch: 18 }, { wch: 10 }, { wch: 22 }, { wch: 46 }, { wch: 12 }, { wch: 40 }, { wch: 36 }];
+    ws["!cols"] = [{ wch: 5 }, { wch: 22 }, { wch: 50 }, { wch: 18 }, { wch: 10 }, { wch: 20 }, { wch: 46 }, { wch: 12 }, { wch: 20 }, { wch: 70 }, { wch: 40 }];
     var wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Спецификация");
     XLSX.writeFile(wb, filename);
@@ -442,7 +447,7 @@
       html += '<p class="panel-sub">Для подбора аналогов по списку артикулов необходимо создать спецификацию в формате .xlsx в соответствии с шаблоном, который вы можете скачать ниже</p>' +
         '<ol class="steps">' +
         '<li><span class="step-n">1</span><div><b>Скачайте шаблон</b><button class="btn btn-ghost" id="dl-template" type="button">Скачать шаблон</button></div></li>' +
-        '<li><span class="step-n">2</span><div><b>Внесите ваше оборудование в шаблон</b><p class="muted small">Артикул и количество для каждой позиции. Если артикула нет в базе, укажите мощность и напряжение — подберём по параметрам.</p></div></li>' +
+        '<li><span class="step-n">2</span><div><b>Внесите ваше оборудование в шаблон</b><p class="muted small">Артикул и количество для каждой позиции. Производитель нужен, если один артикул выпускают разные компании. Если артикула нет в базе, укажите мощность и напряжение — подберём по параметрам.</p></div></li>' +
         '<li><span class="step-n">3</span><div><b>Загрузите полученную спецификацию со своего устройства</b>' +
         '<label class="drop" id="drop"><input type="file" id="file" accept=".xlsx,.xls,.csv" hidden>' +
         '<span class="drop-icon">⇪</span><span><b>Загрузить спецификацию</b><br><span class="muted small">Выберите файл на устройстве или перетащите его сюда · .xlsx, .xls</span></span></label></div></li></ol>';
@@ -452,18 +457,23 @@
     } else if (batch.stage === "loading") {
       html += '<div class="loading"><span class="spinner"></span>Анализируем файл</div>';
     } else if (batch.stage === "done") {
-      var rows = batch.rows, ok = rows.filter(function (r) { return r.article; }).length;
+      var rows = batch.rows;
+      var ok = rows.filter(function (r) { return r.article; }).length;
+      var full = rows.filter(function (r) { return r.level === "Полная замена" || r.level === "Оборудование TettaPRO"; }).length;
       var pct = rows.length ? Math.round(ok / rows.length * 100) : 0;
       html += '<div class="batch-result"><div class="pct"><svg viewBox="0 0 36 36"><circle cx="18" cy="18" r="15.9" class="pct-bg"/><circle cx="18" cy="18" r="15.9" class="pct-fg" stroke-dasharray="' + pct + ' 100"/></svg><b>' + pct + "%</b></div>" +
-        "<div><b>Успешно подобрано " + pct + "% оборудования</b><p class=\"muted small\">" + esc(batch.file) + " · позиций: " + rows.length + " · найдено аналогов: " + ok + "</p>" +
-        (ok < rows.length ? '<p class="small">Если у вас остались вопросы по подбору аналогов, обратитесь в <a data-mail="support">службу технической поддержки</a>.</p>' : "") + "</div></div>" +
+        "<div><b>Успешно подобрано " + pct + "% оборудования</b><p class=\"muted small\">" + esc(batch.file) + " · позиций: " + rows.length +
+        " · полная замена: " + full + " · с оговорками или по параметрам: " + (ok - full) + " · без аналога: " + (rows.length - ok) + "</p>" +
+        (ok < rows.length || full < ok ? '<p class="small">Если у вас остались вопросы по подбору аналогов, обратитесь в <a data-mail="support">службу технической поддержки</a>.</p>' : "") + "</div></div>" +
         '<div class="analog-actions"><button class="btn btn-primary" id="dl-batch" type="button">Скачать спецификацию</button>' +
         '<button class="btn btn-ghost" id="buy-batch" type="button">Купить все</button>' +
         '<button class="btn btn-link" id="batch-new" type="button">Новый подбор</button></div>' +
-        '<div class="table-wrap"><table class="result-table"><thead><tr><th>№</th><th>Референс</th><th>Производитель</th><th>Кол-во</th><th>Аналог TETTAPRO</th><th>Кол-во</th><th>Комментарий</th></tr></thead><tbody>' +
+        '<div class="table-wrap"><table class="result-table"><thead><tr><th>№</th><th>Референс</th><th>Производитель</th><th>Кол-во</th><th>Аналог TettaPRO</th><th>Кол-во</th><th>Соответствие</th></tr></thead><tbody>' +
         rows.map(function (r, i) {
-          return '<tr class="' + (r.article ? "" : "miss") + '"><td>' + (i + 1) + "</td><td><b>" + esc(r.refArticle) + '</b><div class="muted small">' + esc(r.refName || "") + "</div></td><td>" + esc(r.manufacturer || "—") +
-            "</td><td>" + r.qty + "</td><td>" + (r.article ? '<a href="' + esc(r.url) + '" target="_blank" rel="noopener"><b>' + esc(r.article) + "</b></a>" : "—") + "</td><td>" + (r.article ? r.aqty : "") + '</td><td class="small">' + esc(r.comment || "") + "</td></tr>";
+          var lvl = !r.article ? '<span class="badge badge-none">Нет аналога</span>' : '<span class="badge badge-' + (r.level === "Полная замена" || r.level === "Оборудование TettaPRO" ? "full" : "partial") + '">' + esc(r.level) + "</span>";
+          return '<tr class="' + (r.article ? "" : "miss") + '"><td>' + (i + 1) + "</td><td><b>" + esc(r.refArticle) + '</b><div class="muted small">' + esc(r.refTitle || "") + "</div></td><td>" + esc(r.manufacturer || "—") +
+            "</td><td>" + r.qty + "</td><td>" + (r.article ? '<a href="' + esc(r.url) + '" target="_blank" rel="noopener"><b>' + esc(r.article) + "</b></a>" : "—") + "</td><td>" + (r.article ? r.aqty : "") + "</td><td>" + lvl +
+            (r.comment ? '<div class="small muted">' + esc(r.comment) + "</div>" : "") + "</td></tr>";
         }).join("") + "</tbody></table></div>";
     }
     p.innerHTML = html;
@@ -478,14 +488,13 @@
     }
     var db = $("#dl-batch"); if (db) db.addEventListener("click", function () {
       var ok = batch.rows.filter(function (r) { return r.article; }).length;
-      exportSpec(batch.rows, "Пакетный_подбор_TETTAPRO_" + today() + ".xlsx", "Исходный файл: " + batch.file + " · подобрано " + ok + " из " + batch.rows.length);
+      exportSpec(batch.rows, "Пакетный_подбор_TettaPRO_" + today() + ".xlsx", "Исходный файл: " + batch.file + " · подобрано " + ok + " из " + batch.rows.length);
       track("download_spec", { mode: "batch", rows: batch.rows.length });
     });
     var bb = $("#buy-batch"); if (bb) bb.addEventListener("click", function () {
       var agg = {};
       batch.rows.forEach(function (r) { if (r.article) agg[r.article] = (agg[r.article] || 0) + r.aqty; });
-      var lines = Object.keys(agg).map(function (a) { return "• " + a + " — " + agg[a] + " шт."; }).join("\n");
-      location.href = mailto(CFG.salesEmail, "TETTAPRO — запрос цены по спецификации", "Здравствуйте! Прошу выставить предложение:\n" + lines + "\n\nКомпания:\nКонтактное лицо:\nТелефон:");
+      location.href = buyAllLink(agg);
     });
     var bn = $("#batch-new"); if (bn) bn.addEventListener("click", function () { batch = { stage: "start", rows: null, file: "", errors: [] }; renderBatch(); });
   }
@@ -494,8 +503,8 @@
     if (!window.XLSX) { toast("Модуль Excel ещё загружается, попробуйте через секунду", "error"); return; }
     var aoa = [
       ["Артикул", "Количество", "Производитель", "Мощность, Вт", "Выходное напряжение, В"],
-      ["HDR-60-24", 5, "MEAN WELL", "", ""],
-      ["6EP1333-2BA20", 2, "Siemens", "", ""],
+      ["NDR-240-24", 5, "Mean Well", "", ""],
+      ["MDR-60-24", 2, "Mean Well", "", ""],
       ["ИП-100-24 (пример по параметрам)", 1, "", 100, 24]
     ];
     var ws = XLSX.utils.aoa_to_sheet(aoa);
@@ -518,7 +527,7 @@
         var wb = XLSX.read(new Uint8Array(fr.result), { type: "array" });
         var aoa = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, defval: "", raw: false });
         var out = processRows(aoa);
-        if (out.error) { batch = { stage: "error", errors: [out.error] }; }
+        if (out.error) batch = { stage: "error", errors: [out.error] };
         else { batch = { stage: "done", rows: out.rows, file: file.name }; track("batch_upload", { rows: out.rows.length }); }
       } catch (e) {
         batch = { stage: "error", errors: ["Не удалось обработать файл. Проверьте соответствие шаблону."] };
@@ -549,31 +558,35 @@
       var art = String(r[cols.article] || "").trim();
       if (!art) return;
       var qty = cols.qty >= 0 ? Math.max(1, Math.round(TettaEngine.num(r[cols.qty]) || 1)) : 1;
+      var man = cols.man >= 0 ? String(r[cols.man] || "").trim() : "";
       var own = engine.findProduct(art);
-      if (own) { rows.push(rowOut({ article: art, name: "", manufacturer: "TETTAPRO" }, qty, [{ product: own, qty: 1 }], "Уже оборудование TETTAPRO")); return; }
-      var ref = engine.findRef(art);
-      var res, comment;
-      if (ref) {
-        res = engine.analogsFor(ref);
-        comment = res.options.length > 1 ? "Альтернатива с запасом: " + res.options[1].items.map(function (x) { return x.product.article; }).join(" + ") : (res.options[0] && res.options[0].note) || "";
-      } else {
+      if (own) {
+        rows.push({ refArticle: art, refTitle: own.name, manufacturer: "TettaPRO", qty: qty, article: own.a, name: own.name, aqty: qty, url: own.url, level: "Оборудование TettaPRO", comment: "" });
+        return;
+      }
+      var found = engine.findRefs(art, man);
+      var ref = found[0] || null, res, note = "";
+      if (found.length > 1) note = "Артикул есть у нескольких производителей (" + found.map(function (x) { return x.m; }).join(", ") + ") — взят " + ref.m + ", укажите производителя в файле";
+      if (ref) res = engine.analogsFor(ref);
+      else {
         var pw = cols.power >= 0 ? TettaEngine.num(r[cols.power]) : null, v = cols.voltage >= 0 ? TettaEngine.num(r[cols.voltage]) : null;
-        ref = { article: art, name: "", manufacturer: cols.man >= 0 ? String(r[cols.man] || "") : "" };
-        if (pw && v) { res = engine.analogsByParams(pw, v); comment = res.options.length ? "Подобрано по параметрам " + pw + " Вт / " + v + " В — проверьте габариты и подключение" : ""; }
+        ref = { a: art, m: man, name: "", title: "" };
+        if (pw && v) { res = engine.analogsByParams(pw, v); note = "Подобрано по параметрам " + pw + " Вт / " + v + " В — артикула нет в базе"; }
         else res = { options: [], reason: "Артикул не найден в базе. Укажите мощность и напряжение или обратитесь в поддержку" };
       }
-      rows.push(rowOut(ref, qty, res.options[0] ? res.options[0].items : null, res.options.length ? comment : res.reason));
+      var opt = res.options[0];
+      var byParams = !found.length && opt;
+      rows.push({
+        refArticle: art, refName: ref.name, refTitle: ref.title, manufacturer: ref.m || man, qty: qty,
+        article: opt ? opt.items[0].product.a : "", name: opt ? opt.items[0].product.name : "",
+        aqty: opt ? qty * opt.items[0].qty : 0, url: opt ? opt.items[0].product.url : "",
+        level: byParams ? "Подбор по параметрам" : opt ? opt.eval.levelText : "",
+        comment: opt ? [note, warnText(opt.eval), res.options[1] ? "Альтернатива: " + res.options.slice(1).map(function (o) { return o.items[0].product.a + " (" + o.note.toLowerCase() + ")"; }).join(", ") : ""].filter(Boolean).join(". ")
+          : [note, res.reason].filter(Boolean).join(". ")
+      });
     });
     if (!rows.length) return { error: "В файле не найдено ни одной позиции. Проверьте соответствие структуры данных с файлом шаблона." };
     return { rows: rows };
-  }
-  function rowOut(ref, qty, items, comment) {
-    var it = items && items[0];
-    return {
-      refArticle: ref.article, refName: ref.name, manufacturer: ref.manufacturer, qty: qty,
-      article: it ? items.map(function (x) { return x.product.article; }).join(" + ") : "",
-      name: it ? it.product.name : "", aqty: it ? qty * it.qty : 0, url: it ? it.product.url : "", comment: comment || ""
-    };
   }
 
   /* ---------- Модальные окна ---------- */
@@ -586,22 +599,25 @@
   $(".modal-close").addEventListener("click", closeModal);
   modal.addEventListener("click", function (e) { if (e.target === modal) closeModal(); });
 
+  var mans = {};
+  engine.refs.forEach(function (r) { mans[r.m] = 1; });
   var ABOUT = '<h2>О сервисе</h2>' +
-    "<p>Перед Вами инструмент для подбора аналогов TETTAPRO к оборудованию других производителей по артикулу, серии или наименованию устройства.</p>" +
+    "<p>Перед Вами инструмент для подбора аналогов TettaPRO к блокам питания других производителей по артикулу, серии или наименованию устройства.</p>" +
     "<p>Вам доступно два типа подбора: <b>одиночный</b> — для подбора аналогов для одного или нескольких аппаратов и <b>пакетный</b> — для загрузки списка оборудования с указанием количества каждой позиции и осуществления единовременного подбора большого количества позиций.</p>" +
     "<h3>Одиночный подбор</h3><ul>" +
-    "<li>Для осуществления одиночного поиска введите в поле поиска артикул, серию или наименование оборудования и нажмите Enter. В появившихся ниже выпадающих списках выберите серию вашего продукта и его наименование, затем нажмите «Подобрать».</li>" +
-    "<li>В случае, если запрошенному артикулу соответствует только один аналог, вы увидите его в правой части экрана под надписью «Рекомендованная замена».</li>" +
-    "<li>В случае, если запрошенному артикулу соответствует несколько аналогов, вы увидите подзаголовок «Для данного референса доступно несколько аналогов» в блоке «Рекомендованная замена».</li></ul>" +
-    "<p>После подтверждения аналога в режиме одиночного подбора, он попадает в блок «Подобранное», а для поиска следующего аналога вы можете повторить процедуру.</p>" +
-    "<p>Вы можете удалить конкретный аппарат на любом этапе подбора, нажав на кнопку с корзиной в блоке «Подобранное». Также вы можете скачать список подобранных аналогов в формате Excel-таблицы, в которой будет указана вся информация об оборудовании.</p>" +
+    "<li>Введите в поле поиска артикул, серию или наименование оборудования и нажмите Enter. В выпадающих списках выберите серию вашего продукта и его наименование, затем нажмите «Подобрать».</li>" +
+    "<li>Если запрошенному артикулу соответствует один аналог, вы увидите его в правой части экрана под надписью «Рекомендованная замена».</li>" +
+    "<li>Если подходит несколько аналогов, вы увидите подзаголовок «Для данного референса доступно несколько аналогов» и сможете выбрать вариант.</li></ul>" +
+    "<p>После подтверждения аналог попадает в блок «Подобранное». Его можно удалить кнопкой с корзиной, а весь список — скачать в формате Excel.</p>" +
     "<h3>Пакетный подбор</h3>" +
-    "<p>Для осуществления пакетного подбора перейдите в соответствующий режим, выбрав «Пакетный» в левой верхней части экрана. Скачайте шаблон, нажав на кнопку «Скачать шаблон», внесите в него артикул оборудования и количество имеющихся устройств для каждой позиции, сохраните заполненный шаблон, нажмите «Загрузить спецификацию» и выберите сохраненный файл.</p>" +
-    "<p>После подбора аналогов по загруженной спецификации вы увидите процент успешно замененного оборудования, а также получите возможность скачать результат подбора, нажав на кнопку «Скачать спецификацию».</p>" +
-    "<h3>Как подбирается аналог</h3>" +
-    "<p>Аналог TETTAPRO подбирается по совпадению выходного напряжения и мощности: рекомендуется ближайшая модель с мощностью не ниже исходной. Перед заменой сверьте габариты, пусковые токи, условия эксплуатации и сигналы контроля (DC OK).</p>" +
-    '<p>В случае возникновения любых дополнительных вопросов, вы можете обратиться в нашу <a data-mail="support">службу поддержки</a>, нажав на соответствующую кнопку в левом нижнем углу экрана.</p>' +
-    '<p class="muted small">База обновлена: ' + esc((window.TETTA_DB || {}).updated || "") + " · референсов: " + engine.refs.length + "</p>";
+    "<p>Выберите «Пакетный» в левой верхней части экрана, скачайте шаблон, внесите артикулы и количество, загрузите файл. Вы увидите процент успешно замененного оборудования и сможете скачать результат.</p>" +
+    "<h3>Как подбирается аналог</h3><ul>" +
+    "<li><b>Обязательно:</b> то же выходное напряжение, мощность и номинальный ток TettaPRO не ниже, чем у заменяемого блока.</li>" +
+    "<li><b>Проверяется:</b> вход и фазность сети, рабочая температура, ширина на DIN-рейке, высота и глубина, пиковый ток (boost), параллельная работа, ККМ.</li>" +
+    "<li><b>Полная замена</b> — все проверенные параметры не хуже. <b>Замена с оговорками</b> — есть отличия, их список показан в таблице сравнения и в спецификации.</li>" +
+    "<li>Рекомендуется ближайшая по мощности модель. Дополнительно предлагается вариант без оговорок и вариант с запасом по мощности, если исходный блок нагружает модель больше чем на " + Math.round((CFG.marginThreshold || 0.8) * 100) + "%.</li></ul>" +
+    '<p>В случае возникновения любых дополнительных вопросов, вы можете обратиться в нашу <a data-mail="support">службу поддержки</a>.</p>' +
+    '<p class="muted small">База обновлена: ' + esc((window.TETTA_DB || {}).updated || "") + " · моделей TettaPRO: " + engine.products.length + " · блоков других производителей: " + engine.refs.length + " · производителей: " + Object.keys(mans).length + "</p>";
 
   function feedbackHtml() {
     var scale = "";
@@ -624,7 +640,7 @@
     var m = e.target.closest("[data-mail]");
     if (m) {
       e.preventDefault();
-      location.href = mailto(CFG.supportEmail, "Техническая поддержка по системе подбора аналогов", "Здравствуйте! Прошу помочь с подбором аналога TETTAPRO.\n\nАртикул и производитель:\nКоличество:\nТребования к оборудованию:\n");
+      location.href = mailto(CFG.supportEmail, "Техническая поддержка по системе подбора аналогов", "Здравствуйте! Прошу помочь с подбором аналога TettaPRO.\n\nАртикул и производитель:\nКоличество:\nТребования к оборудованию:\n");
     }
   });
 
@@ -657,8 +673,9 @@
   var pre = params.get("q") || params.get("prefillQuery");
   if (pre) {
     input.value = pre;
-    var exact = engine.findRef(pre), own = engine.findProduct(pre);
-    if (exact) { selectRef(exact); doMatch(); }
+    var hits = engine.findRefs(pre, params.get("m") || params.get("manufacturer"));
+    var own = engine.findProduct(pre);
+    if (hits.length === 1) { selectRef(hits[0]); doMatch(); }
     else if (own) showOwn(own);
     else { renderDropdown(); input.focus(); }
   }

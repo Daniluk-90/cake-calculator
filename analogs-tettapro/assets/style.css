@@ -227,3 +227,25 @@ mark{background:none;color:var(--red2);font-weight:700}
   .nps{height:32px;font-size:13px}
 }
 @media (max-width:820px){.col-search{grid-template-columns:1fr}}
+
+/* ---------- Оценка соответствия ---------- */
+.badge{display:inline-block;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:700;margin-bottom:12px;white-space:nowrap}
+.badge-full{background:#16884f1a;color:var(--ok)}
+.badge-partial{background:#b86e001a;color:var(--warn)}
+.badge-none{background:#e3262d14;color:var(--red)}
+.result-table .badge{margin-bottom:4px}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-left:8px;vertical-align:middle}
+.dot-full{background:var(--ok)} .dot-partial{background:var(--warn)}
+.tab-head{display:flex;align-items:center}
+.product-img.is-empty{background:radial-gradient(circle at 50% 40%,#ffffff,#e9eef2 80%)}
+.product-img .no-photo{width:40%;height:auto;filter:invert(1);opacity:.12}
+.cmp-wrap{margin-top:-2px}
+.cmp-title{font-weight:700;margin:6px 0 4px}
+.cmp td,.cmp th{vertical-align:top}
+.cmp td:nth-child(3){font-weight:600}
+.st-ico{display:inline-grid;place-items:center;width:17px;height:17px;border-radius:50%;font-size:11px;font-weight:800;margin-right:6px;color:#fff;vertical-align:1px}
+.st-ok .st-ico{background:var(--ok)} .st-warn .st-ico{background:var(--warn)}
+.st-info .st-ico{background:var(--muted2)} .st-unknown .st-ico{background:var(--line2);color:var(--muted)}
+.st-warn td:nth-child(3){color:var(--warn)}
+.st-text{font-weight:500;font-size:12px;color:var(--muted);margin-top:2px}
+.dd-sub b{font-weight:600;color:var(--text)}
