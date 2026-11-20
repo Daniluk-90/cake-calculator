@@ -29,6 +29,12 @@
 Например, в поддомен `analogs.tettapro.ru` или в путь `tettapro.ru/analogs/`.
 Пути в проекте относительные, поэтому подходят оба варианта.
 
+**На роутере ASUS** (прошивка Asuswrt-Merlin + USB-флешка, настройка с iPhone) — пошаговая инструкция
+в `router/README.md`, установка одной командой `sh router/setup.sh`.
+
+Название сайта — «Подбор аналогов TettaPRO» (вкладка браузера). На экране «Домой» iPhone он
+называется «TettaPRO» и показывается с красной иконкой θ (`assets/img/apple-touch-icon.png`, `site.webmanifest`).
+
 Проверить локально можно двумя способами: открыть `index.html` двойным кликом или выполнить
 `python3 -m http.server` в папке и открыть http://localhost:8000.
 
