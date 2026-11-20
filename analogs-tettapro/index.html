@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Система подбора аналогов — TETTAPRO</title>
-  <meta name="description" content="Подбор аналогов блоков питания на DIN-рейку TETTAPRO по артикулу, серии или наименованию. Одиночный и пакетный подбор, спецификация в Excel.">
+  <meta name="description" content="Подбор аналогов блоков питания на DIN-рейку TETTAPRO по артикулу, серии или наименованию. Сравнение параметров и спецификация в Excel.">
   <meta name="theme-color" content="#f3f5f7">
   <link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="assets/style.css">
@@ -18,10 +18,6 @@
     </a>
     <div class="tool-title"><span class="red-dash"></span>Система подбора <br>аналогов</div>
 
-    <div class="mode-switch" role="tablist" aria-label="Тип подбора">
-      <button role="tab" class="mode-btn is-active" data-mode="single" aria-selected="true">Одиночный</button>
-      <button role="tab" class="mode-btn" data-mode="batch" aria-selected="false">Пакетный</button>
-    </div>
 
     <button class="side-link" data-open="about">
       <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><path d="M12 11v6M12 7.5v.5"/></svg>
@@ -46,7 +42,6 @@
 
   <!-- Основная область -->
   <main class="main">
-    <!-- ОДИНОЧНЫЙ ПОДБОР -->
     <section class="mode-view" id="view-single">
       <div class="grid">
         <div class="col-search">
@@ -78,10 +73,6 @@
       </div>
     </section>
 
-    <!-- ПАКЕТНЫЙ ПОДБОР -->
-    <section class="mode-view" id="view-batch" hidden>
-      <div class="panel batch-panel" id="batch-panel"></div>
-    </section>
   </main>
 
   <!-- Подобранное -->

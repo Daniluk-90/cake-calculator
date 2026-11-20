@@ -39,7 +39,6 @@
 
   /* ---------- Состояние ---------- */
   var state = {
-    mode: params.get("mode") === "batch" ? "batch" : "single",
     ref: null,            // референс, для которого выполнен подбор
     selLine: null,        // выбранная серия
     selRef: null,         // выбранный продукт в серии
@@ -51,22 +50,6 @@
   };
   function load() { try { return JSON.parse(localStorage.getItem(STORE)) || []; } catch (e) { return []; } }
   function save() { try { localStorage.setItem(STORE, JSON.stringify(state.picked)); } catch (e) {} }
-
-  /* ---------- Переключение режимов ---------- */
-  function setMode(m) {
-    state.mode = m;
-    $$(".mode-btn").forEach(function (b) {
-      var on = b.dataset.mode === m;
-      b.classList.toggle("is-active", on);
-      b.setAttribute("aria-selected", on);
-    });
-    $("#view-single").hidden = m !== "single";
-    $("#view-batch").hidden = m !== "batch";
-    $("#picked").hidden = m !== "single";
-    $("#app").classList.toggle("is-batch", m === "batch");
-    if (m === "batch") renderBatch();
-  }
-  $$(".mode-btn").forEach(function (b) { b.addEventListener("click", function () { setMode(b.dataset.mode); }); });
 
   /* ---------- Поиск ---------- */
   var input = $("#search"), dd = $("#search-dropdown"), activeIdx = -1, ddCount = 0;
@@ -399,7 +382,7 @@
         article: p.analog, name: pr.name, aqty: p.qty * (p.analogQty || 1), url: pr.url, level: p.level, comment: p.warn };
     });
     exportSpec(rows, "Спецификация_TettaPRO_" + today() + ".xlsx");
-    track("download_spec", { mode: "single", rows: rows.length });
+    track("download_spec", { rows: rows.length });
   });
   $("#buy-all").addEventListener("click", function () {
     var agg = {};
@@ -438,157 +421,6 @@
     XLSX.writeFile(wb, filename);
   }
 
-  /* ---------- Пакетный подбор ---------- */
-  var batch = { stage: "start", rows: null, file: "", errors: [] };
-
-  function renderBatch() {
-    var p = $("#batch-panel"), html = '<h1 class="panel-title">Пакетный подбор аналогов</h1>';
-    if (batch.stage === "start" || batch.stage === "error") {
-      html += '<p class="panel-sub">Для подбора аналогов по списку артикулов необходимо создать спецификацию в формате .xlsx в соответствии с шаблоном, который вы можете скачать ниже</p>' +
-        '<ol class="steps">' +
-        '<li><span class="step-n">1</span><div><b>Скачайте шаблон</b><button class="btn btn-ghost" id="dl-template" type="button">Скачать шаблон</button></div></li>' +
-        '<li><span class="step-n">2</span><div><b>Внесите ваше оборудование в шаблон</b><p class="muted small">Артикул и количество для каждой позиции. Производитель нужен, если один артикул выпускают разные компании. Если артикула нет в базе, укажите мощность и напряжение — подберём по параметрам.</p></div></li>' +
-        '<li><span class="step-n">3</span><div><b>Загрузите полученную спецификацию со своего устройства</b>' +
-        '<label class="drop" id="drop"><input type="file" id="file" accept=".xlsx,.xls,.csv" hidden>' +
-        '<span class="drop-icon">⇪</span><span><b>Загрузить спецификацию</b><br><span class="muted small">Выберите файл на устройстве или перетащите его сюда · .xlsx, .xls</span></span></label></div></li></ol>';
-      if (batch.stage === "error") {
-        html += '<div class="not-found"><b>Не удалось распознать файл</b><p>' + esc(batch.errors[0] || "Проверьте соответствие структуры данных с файлом шаблона и формат файла") + "</p></div>";
-      }
-    } else if (batch.stage === "loading") {
-      html += '<div class="loading"><span class="spinner"></span>Анализируем файл</div>';
-    } else if (batch.stage === "done") {
-      var rows = batch.rows;
-      var ok = rows.filter(function (r) { return r.article; }).length;
-      var full = rows.filter(function (r) { return r.level === "Полная замена" || r.level === "Оборудование TettaPRO"; }).length;
-      var pct = rows.length ? Math.round(ok / rows.length * 100) : 0;
-      html += '<div class="batch-result"><div class="pct"><svg viewBox="0 0 36 36"><circle cx="18" cy="18" r="15.9" class="pct-bg"/><circle cx="18" cy="18" r="15.9" class="pct-fg" stroke-dasharray="' + pct + ' 100"/></svg><b>' + pct + "%</b></div>" +
-        "<div><b>Успешно подобрано " + pct + "% оборудования</b><p class=\"muted small\">" + esc(batch.file) + " · позиций: " + rows.length +
-        " · полная замена: " + full + " · с оговорками или по параметрам: " + (ok - full) + " · без аналога: " + (rows.length - ok) + "</p>" +
-        (ok < rows.length || full < ok ? '<p class="small">Если у вас остались вопросы по подбору аналогов, обратитесь в <a data-mail="support">службу технической поддержки</a>.</p>' : "") + "</div></div>" +
-        '<div class="analog-actions"><button class="btn btn-primary" id="dl-batch" type="button">Скачать спецификацию</button>' +
-        '<button class="btn btn-ghost" id="buy-batch" type="button">Купить все</button>' +
-        '<button class="btn btn-link" id="batch-new" type="button">Новый подбор</button></div>' +
-        '<div class="table-wrap"><table class="result-table"><thead><tr><th>№</th><th>Референс</th><th>Производитель</th><th>Кол-во</th><th>Аналог TettaPRO</th><th>Кол-во</th><th>Соответствие</th></tr></thead><tbody>' +
-        rows.map(function (r, i) {
-          var lvl = !r.article ? '<span class="badge badge-none">Нет аналога</span>' : '<span class="badge badge-' + (r.level === "Полная замена" || r.level === "Оборудование TettaPRO" ? "full" : "partial") + '">' + esc(r.level) + "</span>";
-          return '<tr class="' + (r.article ? "" : "miss") + '"><td>' + (i + 1) + "</td><td><b>" + esc(r.refArticle) + '</b><div class="muted small">' + esc(r.refTitle || "") + "</div></td><td>" + esc(r.manufacturer || "—") +
-            "</td><td>" + r.qty + "</td><td>" + (r.article ? '<a href="' + esc(r.url) + '" target="_blank" rel="noopener"><b>' + esc(r.article) + "</b></a>" : "—") + "</td><td>" + (r.article ? r.aqty : "") + "</td><td>" + lvl +
-            (r.comment ? '<div class="small muted">' + esc(r.comment) + "</div>" : "") + "</td></tr>";
-        }).join("") + "</tbody></table></div>";
-    }
-    p.innerHTML = html;
-
-    var t = $("#dl-template"); if (t) t.addEventListener("click", downloadTemplate);
-    var f = $("#file"); if (f) f.addEventListener("change", function () { if (f.files[0]) readFile(f.files[0]); });
-    var d = $("#drop");
-    if (d) {
-      ["dragenter", "dragover"].forEach(function (ev) { d.addEventListener(ev, function (e) { e.preventDefault(); d.classList.add("is-over"); }); });
-      ["dragleave", "drop"].forEach(function (ev) { d.addEventListener(ev, function (e) { e.preventDefault(); d.classList.remove("is-over"); }); });
-      d.addEventListener("drop", function (e) { var file = e.dataTransfer.files[0]; if (file) readFile(file); });
-    }
-    var db = $("#dl-batch"); if (db) db.addEventListener("click", function () {
-      var ok = batch.rows.filter(function (r) { return r.article; }).length;
-      exportSpec(batch.rows, "Пакетный_подбор_TettaPRO_" + today() + ".xlsx", "Исходный файл: " + batch.file + " · подобрано " + ok + " из " + batch.rows.length);
-      track("download_spec", { mode: "batch", rows: batch.rows.length });
-    });
-    var bb = $("#buy-batch"); if (bb) bb.addEventListener("click", function () {
-      var agg = {};
-      batch.rows.forEach(function (r) { if (r.article) agg[r.article] = (agg[r.article] || 0) + r.aqty; });
-      location.href = buyAllLink(agg);
-    });
-    var bn = $("#batch-new"); if (bn) bn.addEventListener("click", function () { batch = { stage: "start", rows: null, file: "", errors: [] }; renderBatch(); });
-  }
-
-  function downloadTemplate() {
-    if (!window.XLSX) { toast("Модуль Excel ещё загружается, попробуйте через секунду", "error"); return; }
-    var aoa = [
-      ["Артикул", "Количество", "Производитель", "Мощность, Вт", "Выходное напряжение, В"],
-      ["NDR-240-24", 5, "Mean Well", "", ""],
-      ["MDR-60-24", 2, "Mean Well", "", ""],
-      ["ИП-100-24 (пример по параметрам)", 1, "", 100, 24]
-    ];
-    var ws = XLSX.utils.aoa_to_sheet(aoa);
-    ws["!cols"] = [{ wch: 34 }, { wch: 12 }, { wch: 20 }, { wch: 14 }, { wch: 24 }];
-    var wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Спецификация");
-    XLSX.writeFile(wb, "шаблон_пакетный_подбор.xlsx");
-    track("download_template");
-  }
-
-  function readFile(file) {
-    if (!/\.(xlsx|xls|csv)$/i.test(file.name)) {
-      batch = { stage: "error", errors: ["Пожалуйста, загрузите файл в формате Excel (.xls или .xlsx)."] }; renderBatch(); return;
-    }
-    if (!window.XLSX) { toast("Модуль Excel ещё загружается, попробуйте через секунду", "error"); return; }
-    batch = { stage: "loading", file: file.name }; renderBatch();
-    var fr = new FileReader();
-    fr.onload = function () {
-      try {
-        var wb = XLSX.read(new Uint8Array(fr.result), { type: "array" });
-        var aoa = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, defval: "", raw: false });
-        var out = processRows(aoa);
-        if (out.error) batch = { stage: "error", errors: [out.error] };
-        else { batch = { stage: "done", rows: out.rows, file: file.name }; track("batch_upload", { rows: out.rows.length }); }
-      } catch (e) {
-        batch = { stage: "error", errors: ["Не удалось обработать файл. Проверьте соответствие шаблону."] };
-      }
-      setTimeout(renderBatch, 300);
-    };
-    fr.onerror = function () { batch = { stage: "error", errors: ["Ошибка загрузки файла. Попробуйте снова."] }; renderBatch(); };
-    fr.readAsArrayBuffer(file);
-  }
-
-  function processRows(aoa) {
-    var hi = -1, cols = {};
-    for (var i = 0; i < Math.min(aoa.length, 20); i++) {
-      var r = aoa[i].map(function (c) { return String(c).toLowerCase(); });
-      var a = r.findIndex(function (c) { return c.indexOf("артикул") !== -1 || c === "article" || c.indexOf("референс") !== -1; });
-      if (a !== -1) {
-        hi = i; cols.article = a;
-        cols.qty = r.findIndex(function (c) { return c.indexOf("кол") === 0 || c.indexOf("количество") !== -1 || c === "qty"; });
-        cols.man = r.findIndex(function (c) { return c.indexOf("производ") !== -1; });
-        cols.power = r.findIndex(function (c) { return c.indexOf("мощн") !== -1; });
-        cols.voltage = r.findIndex(function (c) { return c.indexOf("напряж") !== -1; });
-        break;
-      }
-    }
-    if (hi === -1) return { error: "Отсутствуют обязательные колонки: Артикул" };
-    var rows = [];
-    aoa.slice(hi + 1).forEach(function (r) {
-      var art = String(r[cols.article] || "").trim();
-      if (!art) return;
-      var qty = cols.qty >= 0 ? Math.max(1, Math.round(TettaEngine.num(r[cols.qty]) || 1)) : 1;
-      var man = cols.man >= 0 ? String(r[cols.man] || "").trim() : "";
-      var own = engine.findProduct(art);
-      if (own) {
-        rows.push({ refArticle: art, refTitle: own.name, manufacturer: "TettaPRO", qty: qty, article: own.a, name: own.name, aqty: qty, url: own.url, level: "Оборудование TettaPRO", comment: "" });
-        return;
-      }
-      var found = engine.findRefs(art, man);
-      var ref = found[0] || null, res, note = "";
-      if (found.length > 1) note = "Артикул есть у нескольких производителей (" + found.map(function (x) { return x.m; }).join(", ") + ") — взят " + ref.m + ", укажите производителя в файле";
-      if (ref) res = engine.analogsFor(ref);
-      else {
-        var pw = cols.power >= 0 ? TettaEngine.num(r[cols.power]) : null, v = cols.voltage >= 0 ? TettaEngine.num(r[cols.voltage]) : null;
-        ref = { a: art, m: man, name: "", title: "" };
-        if (pw && v) { res = engine.analogsByParams(pw, v); note = "Подобрано по параметрам " + pw + " Вт / " + v + " В — артикула нет в базе"; }
-        else res = { options: [], reason: "Артикул не найден в базе. Укажите мощность и напряжение или обратитесь в поддержку" };
-      }
-      var opt = res.options[0];
-      var byParams = !found.length && opt;
-      rows.push({
-        refArticle: art, refName: ref.name, refTitle: ref.title, manufacturer: ref.m || man, qty: qty,
-        article: opt ? opt.items[0].product.a : "", name: opt ? opt.items[0].product.name : "",
-        aqty: opt ? qty * opt.items[0].qty : 0, url: opt ? opt.items[0].product.url : "",
-        level: byParams ? "Подбор по параметрам" : opt ? opt.eval.levelText : "",
-        comment: opt ? [note, warnText(opt.eval), res.options[1] ? "Альтернатива: " + res.options.slice(1).map(function (o) { return o.items[0].product.a + " (" + o.note.toLowerCase() + ")"; }).join(", ") : ""].filter(Boolean).join(". ")
-          : [note, res.reason].filter(Boolean).join(". ")
-      });
-    });
-    if (!rows.length) return { error: "В файле не найдено ни одной позиции. Проверьте соответствие структуры данных с файлом шаблона." };
-    return { rows: rows };
-  }
-
   /* ---------- Модальные окна ---------- */
   var modal = $("#modal");
   function openModal(html) {
@@ -603,14 +435,11 @@
   engine.refs.forEach(function (r) { mans[r.m] = 1; });
   var ABOUT = '<h2>О сервисе</h2>' +
     "<p>Перед Вами инструмент для подбора аналогов TettaPRO к блокам питания других производителей по артикулу, серии или наименованию устройства.</p>" +
-    "<p>Вам доступно два типа подбора: <b>одиночный</b> — для подбора аналогов для одного или нескольких аппаратов и <b>пакетный</b> — для загрузки списка оборудования с указанием количества каждой позиции и осуществления единовременного подбора большого количества позиций.</p>" +
-    "<h3>Одиночный подбор</h3><ul>" +
+    "<h3>Как пользоваться</h3><ul>" +
     "<li>Введите в поле поиска артикул, серию или наименование оборудования и нажмите Enter. В выпадающих списках выберите серию вашего продукта и его наименование, затем нажмите «Подобрать».</li>" +
     "<li>Если запрошенному артикулу соответствует один аналог, вы увидите его в правой части экрана под надписью «Рекомендованная замена».</li>" +
     "<li>Если подходит несколько аналогов, вы увидите подзаголовок «Для данного референса доступно несколько аналогов» и сможете выбрать вариант.</li></ul>" +
     "<p>После подтверждения аналог попадает в блок «Подобранное». Его можно удалить кнопкой с корзиной, а весь список — скачать в формате Excel.</p>" +
-    "<h3>Пакетный подбор</h3>" +
-    "<p>Выберите «Пакетный» в левой верхней части экрана, скачайте шаблон, внесите артикулы и количество, загрузите файл. Вы увидите процент успешно замененного оборудования и сможете скачать результат.</p>" +
     "<h3>Как подбирается аналог</h3><ul>" +
     "<li><b>Обязательно:</b> то же выходное напряжение, мощность и номинальный ток TettaPRO не ниже, чем у заменяемого блока.</li>" +
     "<li><b>Проверяется:</b> вход и фазность сети, рабочая температура, ширина на DIN-рейке, высота и глубина, пиковый ток (boost), параллельная работа, ККМ.</li>" +
@@ -665,7 +494,6 @@
   }
 
   /* ---------- Старт ---------- */
-  setMode(state.mode);
   renderAnalog();
   renderPicked();
   if (innerWidth < 1100 && !state.picked.length) $("#picked").classList.add("is-collapsed");
