@@ -381,7 +381,7 @@
       return { refArticle: p.ref, refName: p.refName, manufacturer: p.manufacturer, qty: p.qty,
         article: p.analog, name: pr.name, aqty: p.qty * (p.analogQty || 1), url: pr.url, level: p.level, comment: p.warn };
     });
-    exportSpec(rows, "Спецификация_TettaPRO_" + today() + ".xlsx");
+    exportSpec(rows, "TettaPRO_specifikaciya_" + today() + ".xlsx");
     track("download_spec", { rows: rows.length });
   });
   $("#buy-all").addEventListener("click", function () {

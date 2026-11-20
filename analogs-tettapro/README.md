@@ -29,8 +29,9 @@
 Например, в поддомен `analogs.tettapro.ru` или в путь `tettapro.ru/analogs/`.
 Пути в проекте относительные, поэтому подходят оба варианта.
 
-**На роутере ASUS** (прошивка Asuswrt-Merlin + USB-флешка, настройка с iPhone) — пошаговая инструкция
-в `router/README.md`, установка одной командой `sh router/setup.sh`.
+**На роутере с OpenWrt** (встроенный веб-сервер uhttpd, настройка с iPhone через Termius) — пошаговая
+инструкция в `router/README.md`, установка одной командой `sh router/openwrt-setup.sh ИМЯ ТОКЕН`
+(ИМЯ и ТОКЕН — от бесплатного адреса ИМЯ.duckdns.org).
 
 Название сайта — «Подбор аналогов TettaPRO» (вкладка браузера). На экране «Домой» iPhone он
 называется «TettaPRO» и показывается с сине-голубой иконкой θ на белом фоне (исходник `assets/img/icon.svg`, PNG — `assets/img/apple-touch-icon.png`, `icon-192.png`, `icon-512.png`).

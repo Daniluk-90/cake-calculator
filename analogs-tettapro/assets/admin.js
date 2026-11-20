@@ -27,7 +27,7 @@
     ws["!cols"] = aoa[0].map(function (h) { return { wch: Math.max(10, Math.min(40, h.length + 2)) }; });
     var wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Блоки питания DIN");
-    XLSX.writeFile(wb, "Блоки_питания_DIN_" + new Date().toISOString().slice(0, 10) + ".xlsx");
+    XLSX.writeFile(wb, "TettaPRO_baza_blokov_pitaniya_" + new Date().toISOString().slice(0, 10) + ".xlsx");
   });
 
   $("#up-db").addEventListener("change", function (e) {
